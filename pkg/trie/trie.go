@@ -7,7 +7,7 @@ import (
 // Bytes reflects a type alias for a byte slice
 type Bytes []byte
 
-// TrieNode implements a node that the Trie is composed of. Each node contains
+// Node implements a node that the Trie is composed of. Each node contains
 // a symbol that a key can be composed of unless the node is the root. The node
 // has a collection of children that is represented as a hashmap, although,
 // traditionally an array is used to represent each symbol in the given
@@ -16,31 +16,32 @@ type Bytes []byte
 //
 // TODO: Handle the case where the Value given is a dummy Value which can be
 // nil. Perhaps it's best to not store values at all.
-type TrieNode struct {
-	children []*TrieNode
+type Node struct {
+	children []*Node
 	symbol   byte
 	Value    interface{}
 	root     bool
 }
 
+
 // Trie implements a thread-safe search tree that stores byte key Value pairs
 // and allows for efficient queries.
 type Trie struct {
 	rw   sync.RWMutex
-	root *TrieNode
+	root *Node
 	size int
 }
 
 // NewTrie returns a new initialized empty Trie.
 func NewTrie() *Trie {
 	return &Trie{
-		root: &TrieNode{root: true, children: make([]*TrieNode, 10)},
-		size: 1,
+		root: &Node{root: true, children: make([]*Node, 10)},
+		size: 0,
 	}
 }
 
-func newNode(symbol byte) *TrieNode {
-	return &TrieNode{children: make([]*TrieNode, 10), symbol: symbol}
+func newNode(symbol byte) *Node {
+	return &Node{children: make([]*Node, 10), symbol: symbol}
 }
 
 // Size returns the total number of nodes in the trie. The size includes the
@@ -80,10 +81,33 @@ func (t *Trie) Insert(key Bytes, value interface{}) {
 	currNode.Value = value
 }
 
+func  (t *Trie) Delete(key Bytes) (value *interface{},deleted bool) {
+	t.rw.RLock()
+	defer t.rw.RUnlock()
+
+	currNode := t.root
+
+	for _, symbol := range key {
+		if currNode.children[symbol-byte('0')] == nil {
+			return nil, false
+		}
+		currNode = currNode.children[symbol-byte('0')]
+	}
+
+
+	if currNode.Value != nil {
+		t.size--
+	}
+	pTmpValue := currNode.Value
+
+	currNode.Value = nil
+	return &pTmpValue, true
+}
+
 // Search attempts to search for a Value in the trie given a key. If such a key
 // exists, it's Value is returned along with a boolean to reflect that the key
 // exists. Otherwise, an empty Value and false is returned.
-func (t *Trie) Search(key Bytes) (*TrieNode, bool) {
+func (t *Trie) Search(key Bytes) (*interface{}, bool) {
 	t.rw.RLock()
 	defer t.rw.RUnlock()
 
@@ -96,8 +120,11 @@ func (t *Trie) Search(key Bytes) (*TrieNode, bool) {
 
 		currNode = currNode.children[symbol-byte('0')]
 	}
+	if currNode.Value == nil {
+		return nil, false
+	}
 
-	return currNode, true
+	return &currNode.Value, true
 }
 
 // GetAllKeys returns all the keys that exist in the trie. Keys are retrieved
@@ -106,11 +133,11 @@ func (t *Trie) Search(key Bytes) (*TrieNode, bool) {
 // the full path (key) is appended to a list. After the trie search is
 // exhausted, the final list is returned.
 func (t *Trie) GetAllKeys() []Bytes {
-	visited := make(map[*TrieNode]bool)
+	visited := make(map[*Node]bool)
 	var keys []Bytes
 
-	var dfsGetKeys func(n *TrieNode, key Bytes)
-	dfsGetKeys = func(n *TrieNode, key Bytes) {
+	var dfsGetKeys func(n *Node, key Bytes)
+	dfsGetKeys = func(n *Node, key Bytes) {
 		if n != nil {
 			pathKey := append(key, n.symbol)
 			visited[n] = true
@@ -145,15 +172,15 @@ func (t *Trie) GetAllKeys() []Bytes {
 // traversed thusfar. If a node has a Value the full path (key) is appended to
 // a list. After the trie search is exhausted, the final list is returned.
 func (t *Trie) GetPrefixKeys(prefix Bytes) []Bytes {
-	visited := make(map[*TrieNode]bool)
+	visited := make(map[*Node]bool)
 	var keys []Bytes
 
 	if len(prefix) == 0 {
 		return keys
 	}
 
-	var dfsGetPrefixKeys func(n *TrieNode, prefixIdx int, key Bytes)
-	dfsGetPrefixKeys = func(n *TrieNode, prefixIdx int, key Bytes) {
+	var dfsGetPrefixKeys func(n *Node, prefixIdx int, key Bytes)
+	dfsGetPrefixKeys = func(n *Node, prefixIdx int, key Bytes) {
 		if n != nil {
 			pathKey := append(key, n.symbol)
 
@@ -199,17 +226,17 @@ func (t *Trie) GetPrefixKeys(prefix Bytes) []Bytes {
 // the current node has a Value, it is appended to a list. After the trie
 // search is exhausted, the final list is returned.
 func (t *Trie) GetPrefixValues(prefix Bytes) []interface{} {
-	visited := make(map[*TrieNode]bool)
+	visited := make(map[*Node]bool)
 	var values []interface{}
 
 	if len(prefix) == 0 {
 		return values
 	}
 
-	var dfsGetPrefixValues func(n *TrieNode, prefixIdx int)
-	dfsGetPrefixValues = func(n *TrieNode, prefixIdx int) {
+	var dfsGetPrefixValues func(n *Node, prefixIdx int)
+	dfsGetPrefixValues = func(n *Node, prefixIdx int) {
 		if n != nil {
-			if prefixIdx == len(prefix) || n.symbol == prefix[prefixIdx] {
+			if prefixIdx == len(prefix) || n.symbol == (prefix[prefixIdx] - byte('0')) {
 				visited[n] = true
 
 				if n.Value != nil {

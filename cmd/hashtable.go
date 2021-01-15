@@ -169,11 +169,11 @@ func (hm *HashTable) printAll() {
 // Get returns the value associated with a key in the hashTable,
 // and an error indicating whether the value exists or not.
 func (hm *HashTable) Get(studentId StudentID) (*Node, bool) {
-	trieNode, found := hm.tree.Search(trie.Bytes(studentId))
-	if !found || trieNode.Value == nil{
+	val, found := hm.tree.Search(trie.Bytes(studentId))
+	if !found || val == nil{
 		return nil, false
 	}
-	index := trieNode.Value.(uint32)
+	index := (*val).(uint32)
 	chain := hm.buckets[index]
 	for _, node := range chain {
 		if node.Value.StudentID == studentId {
@@ -183,14 +183,12 @@ func (hm *HashTable) Get(studentId StudentID) (*Node, bool) {
 	return nil, false
 }
 
-func (hm HashTable) Del(studentId StudentID) (deleted bool) {
-	tn, found := hm.tree.Search(trie.Bytes(studentId))
-	if !found || tn == nil{
+func (hm *HashTable) Delete(studentId StudentID) (deleted bool) {
+	ind, deleted := hm.tree.Delete(trie.Bytes(studentId))
+	if !deleted || *ind == nil{
 		return false
 	}
-	index := tn.Value.(uint32)
-	var t trie.TrieNode
-	*tn = t
+	index := (*ind).(uint32)
 	chain := hm.buckets[index]
 	for i, node := range chain {
 		if node.Value.StudentID == studentId {

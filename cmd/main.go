@@ -79,7 +79,8 @@ func loadMassiveData(hm *HashTable) {
 func main() {
 	fmt.Printf("%s", ClearScreen)
 	hm, _ := NewHashTable(1000)
-	loadMassiveData(hm)
+	loadData(hm)
+	//loadMassiveData(hm)
 	menu(hm)
 }
 
@@ -148,7 +149,7 @@ func menu(hm *HashTable) {
 						}
 						if secKey == keyboard.KeyEnter {
 							if _counter == 0 {
-								hm.Del(res.Value.StudentID)
+								hm.Delete(res.Value.StudentID)
 								typed = typed[:len(typed)-1]
 								break
 							} else if _counter == 1 {
