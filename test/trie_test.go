@@ -57,9 +57,8 @@ func TestTrieGetValuePrefix(t *testing.T) {
 	for i := 31; i > 0; i-- {
 		tree.Insert(trie.Bytes(fmt.Sprintf("%b", 1 << i)), i)
 		res := tree.GetPrefixValues(trie.Bytes(fmt.Sprintf("%b", 1 << i)))
-		println(res)
-		//if len(res) != 32 - i {
-		//	t.Error("prefix size is wrong")
-		//}
+		if len(res) != 32 - i {
+			t.Error("prefix size is wrong")
+		}
 	}
 }
