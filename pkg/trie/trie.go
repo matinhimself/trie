@@ -1,6 +1,7 @@
 package trie
 
 import (
+	"bytes"
 	"sync"
 )
 
@@ -8,24 +9,16 @@ import (
 type Bytes []byte
 
 // Node implements a node that the Trie is composed of. Each node contains
-// a symbol that a key can be composed of unless the node is the root. The node
-// has a collection of children that is represented as a hashmap, although,
-// traditionally an array is used to represent each symbol in the given
-// alphabet. The node may also contain a Value that indicates a possible query
-// result.
-//
-// TODO: Handle the case where the Value given is a dummy Value which can be
-// nil. Perhaps it's best to not store values at all.
+// a symbol.
 type Node struct {
+	parent   *Node
 	children []*Node
 	symbol   byte
 	Value    interface{}
 	root     bool
 }
 
-
-// Trie implements a thread-safe search tree that stores byte key Value pairs
-// and allows for efficient queries.
+// Trie implements a thread-safe search tree that stores key Value pairs.
 type Trie struct {
 	rw   sync.RWMutex
 	root *Node
@@ -40,33 +33,41 @@ func NewTrie() *Trie {
 	}
 }
 
-func newNode(symbol byte) *Node {
-	return &Node{children: make([]*Node, 10), symbol: symbol}
+func newNode(symbol byte, parent *Node) *Node {
+	return &Node{children: make([]*Node, 10), symbol: symbol, parent: parent}
 }
 
-// Size returns the total number of nodes in the trie. The size includes the
-// root node.
+// Size returns the total number of nodes in the trie.
 func (t *Trie) Size() int {
 	t.rw.RLock()
 	defer t.rw.RUnlock()
 	return t.size
 }
 
+func convert(s string) Bytes {
+	var bs Bytes
+	for i := 0; i < len(s); i++ {
+		bs = append(bs, s[i] - byte('0'))
+	}
+	return bs
+}
+
 // Insert inserts a key Value pair into the trie. If the key already exists,
-// the Value is updated. Insertion is performed by starting at the root
-// and traversing the nodes all the way down until the key is exhausted. Once
-// exhausted, the currNode pointer should be a pointer to the last symbol in
-// the key and reflect the terminating node for that key Value pair.
-func (t *Trie) Insert(key Bytes, value interface{}) {
+// the Value is updated.
+func (t *Trie) Insert(skey string, value interface{}) {
+	key := convert(skey)
 	t.rw.Lock()
 	defer t.rw.Unlock()
+	if bytes.Equal(key, Bytes("")) {
+		return
+	}
 
 	currNode := t.root
 
 	for _, sym := range key {
-		symbol := sym - byte('0')
+		symbol := sym
 		if currNode.children[symbol] == nil {
-			currNode.children[symbol] = newNode(symbol)
+			currNode.children[symbol] = newNode(symbol, currNode)
 		}
 
 		currNode = currNode.children[symbol]
@@ -81,27 +82,49 @@ func (t *Trie) Insert(key Bytes, value interface{}) {
 	currNode.Value = value
 }
 
-func  (t *Trie) Delete(key Bytes) (value *interface{},deleted bool) {
+func (t *Trie) Delete(skey string) (value *interface{}, deleted bool) {
+	key := convert(skey)
 	t.rw.RLock()
 	defer t.rw.RUnlock()
 
 	currNode := t.root
 
 	for _, symbol := range key {
-		if currNode.children[symbol-byte('0')] == nil {
+		if currNode.children[symbol] == nil {
 			return nil, false
 		}
-		currNode = currNode.children[symbol-byte('0')]
+		currNode = currNode.children[symbol]
 	}
-
 
 	if currNode.Value != nil {
 		t.size--
 	}
-	pTmpValue := currNode.Value
 
+	pTmpValue := currNode.Value
+	parent := currNode.parent
 	currNode.Value = nil
+
+	for !hasChildren(parent.children){
+		if parent.root {
+			break
+		}
+		tmpPar := parent.parent
+		parent = &Node{}
+		parent = tmpPar
+	}
+
 	return &pTmpValue, true
+}
+
+func hasChildren(nodes []*Node) bool {
+	hasChildren := false
+	for _, node := range nodes {
+		if node != nil && node.Value != nil{
+			hasChildren = true
+			break
+		}
+	}
+	return hasChildren
 }
 
 // Search attempts to search for a Value in the trie given a key. If such a key
@@ -139,7 +162,7 @@ func (t *Trie) GetAllKeys() []Bytes {
 	var dfsGetKeys func(n *Node, key Bytes)
 	dfsGetKeys = func(n *Node, key Bytes) {
 		if n != nil {
-			pathKey := append(key, n.symbol)
+			pathKey := append(key, n.symbol+byte('0'))
 			visited[n] = true
 
 			if n.Value != nil {
@@ -236,7 +259,7 @@ func (t *Trie) GetPrefixValues(prefix Bytes) []interface{} {
 	var dfsGetPrefixValues func(n *Node, prefixIdx int)
 	dfsGetPrefixValues = func(n *Node, prefixIdx int) {
 		if n != nil {
-			if prefixIdx == len(prefix) || n.symbol == (prefix[prefixIdx] - byte('0')) {
+			if prefixIdx == len(prefix) || n.symbol == (prefix[prefixIdx]-byte('0')) {
 				visited[n] = true
 
 				if n.Value != nil {

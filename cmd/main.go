@@ -22,7 +22,6 @@ const (
 	InlineSearchCount = 3
 )
 
-
 func getInput(format string, destination *string, reader *bufio.Reader, params ...interface{}) error {
 	fmt.Printf(format, params...)
 	text, err := reader.ReadString('\n')
@@ -66,8 +65,8 @@ func loadMassiveData(hm *HashTable) {
 			stid := fmt.Sprintf("%03d", j)
 			gpa := math.Mod(rand.Float64(), 10.0) + 10.0
 			student := NewStudent(
-				"student number " + strconv.Itoa((i+1)*(j+1)),
-				StudentID("980" + middle + "0" + stid),
+				"student number "+strconv.Itoa((i+1)*(j+1)),
+				StudentID("980"+middle+"0"+stid),
 				gpa,
 				"CE",
 			)
@@ -208,7 +207,7 @@ func menu(hm *HashTable) {
 		}
 		searchRes = hm.GetKeysWithPrefix(StudentID(typed))
 		if len(searchRes) > 0 {
-			if searchRes[0] == typed{
+			if searchRes[0] == typed {
 				fmt.Print(ClearScreen)
 				fmt.Printf(Purple, typed)
 				searchRes = searchRes[1:]
@@ -237,13 +236,9 @@ func export(hm *HashTable) {
 	defer writer.Flush()
 
 	hm.printAll()
-	//for i, re := range res {
-	//	fmt.Printf("%d.%s\n", i, re)
-	//}
-
 }
 
-func editStudent(st *Student){
+func editStudent(st *Student) {
 	fmt.Print(ClearScreen)
 	var name, dec string
 	var gpa float64
@@ -272,17 +267,16 @@ func editStudent(st *Student){
 		return
 	}
 
-
-
 	st.UpdateStudent(name, st.StudentID, gpa, dec)
 
 }
+
 func addStudent() *Student {
 	var name, sstid, stid, dec string
 	var gpa float64
 	reader := bufio.NewReader(os.Stdin)
 
-    err := getInput("Full Name: ", &name, reader)
+	err := getInput("Full Name: ", &name, reader)
 	if err != nil {
 		fmt.Println(err)
 	}

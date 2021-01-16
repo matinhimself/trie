@@ -17,16 +17,16 @@ func (n Node) String() string {
 }
 
 // HashTable is a wrapper for a trie tree
-// and a hashtable with will store each
-// student in a hashtable and store its
+// and a hashtable. it will store each
+// student in a hashtable and its
 // hash value in a trie tree as a pair of
-// hash value and student id
+// hash value and student id.
 type HashTable struct {
+	lock    sync.RWMutex
 	size    int
 	count   int
 	buckets [][]Node
 	tree    *trie.Trie
-	lock    sync.RWMutex
 }
 
 func (hm *HashTable) Size() int {
@@ -129,6 +129,8 @@ func (hm *HashTable) getIndex(key *Student) uint32 {
 
 // Set the value for an associated key in the hashmap
 func (hm *HashTable) Set(student *Student) uint32 {
+	hm.lock.Lock()
+	defer hm.lock.Unlock()
 	index := hm.getIndex(student)
 	chain := hm.buckets[index]
 	found := false
@@ -151,24 +153,26 @@ func (hm *HashTable) Set(student *Student) uint32 {
 	chain = append(chain, node)
 	hm.buckets[index] = chain
 	hm.count++
-	hm.tree.Insert([]byte(student.StudentID), index)
+	hm.tree.Insert(string(student.StudentID), index)
 	return index
 }
 
 func (hm *HashTable) printAll() {
+	hm.lock.RLock()
+	defer hm.lock.RUnlock()
+
 	res := hm.tree.GetAllKeys()
 	for i, re := range res {
-		fmt.Printf("%04d.", i)
-		for _, b := range re {
-			fmt.Print(string(b+byte('0')))
-		}
-		fmt.Print("\n")
+		fmt.Printf("%4d.%16s\n", i, re)
 	}
 }
 
 // Get returns the value associated with a key in the hashTable,
 // and an error indicating whether the value exists or not.
 func (hm *HashTable) Get(studentId StudentID) (*Node, bool) {
+	hm.lock.RLock()
+	defer hm.lock.RUnlock()
+
 	val, found := hm.tree.Search(trie.Bytes(studentId))
 	if !found || val == nil{
 		return nil, false
@@ -184,7 +188,10 @@ func (hm *HashTable) Get(studentId StudentID) (*Node, bool) {
 }
 
 func (hm *HashTable) Delete(studentId StudentID) (deleted bool) {
-	ind, deleted := hm.tree.Delete(trie.Bytes(studentId))
+	hm.lock.Lock()
+	defer hm.lock.Unlock()
+
+	ind, deleted := hm.tree.Delete(string(studentId))
 	if !deleted || *ind == nil{
 		return false
 	}
