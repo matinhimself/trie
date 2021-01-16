@@ -230,7 +230,9 @@ func export(hm *HashTable) {
 	if err != nil {
 		println(err)
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	writer := csv.NewWriter(file)
 	defer writer.Flush()
@@ -238,34 +240,55 @@ func export(hm *HashTable) {
 	hm.printAll()
 }
 
-func editStudent(st *Student) {
-	fmt.Print(ClearScreen)
-	var name, dec string
-	var gpa float64
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Println(st)
-	err := getInput("Full Name: ", &name, reader)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	err = getInput("Discipline: ", &dec, reader)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	fmt.Printf("GPA:")
-	_, err = fmt.Fscan(reader, &gpa)
-	_, err = fmt.Fscanln(reader)
-	if err != nil {
-		println(err)
-	}
-
-	if err != nil {
+func getKeyboardInput(Fixed, placeHolder string) string {
+	typed := placeHolder
+	for {
 		fmt.Print(ClearScreen)
-		fmt.Println("Not acceptable float.")
-		return
+		fmt.Printf(Fixed)
+		fmt.Printf(typed)
+		char, key, _ := keyboard.GetKey()
+		if unicode.IsDigit(char) || unicode.IsLetter(char) || unicode.IsPunct(char){
+			typed += string(char)
+		} else
+		if key == keyboard.KeySpace {
+			typed += " "
+		} else
+		if key == keyboard.KeyBackspace || key == keyboard.KeyBackspace2 {
+			if len(typed) > 0 {
+				typed = typed[:len(typed)-1]
+			}
+		} else
+		if key == keyboard.KeyEnter {
+			break
+		}
 	}
+
+	return typed
+}
+
+func editStudent(st *Student) {
+
+	fmt.Print(ClearScreen)
+	var curString string
+	var name, dec, sgpa string
+	var gpa float64
+
+	curString += fmt.Sprintf(strings.TrimSpace(GreenColor), fmt.Sprintf("%-12s", "Name:"))
+	name = getKeyboardInput(curString, st.FullName)
+	curString += name + "\n"
+
+	curString += fmt.Sprintf(strings.TrimSpace(GreenColor), fmt.Sprintf("%-12s", "Discipline:"))
+	dec = getKeyboardInput(curString, st.Discipline)
+	curString += dec + "\n"
+
+	curString += fmt.Sprintf(strings.TrimSpace(GreenColor), fmt.Sprintf("%-12s", "GPA:"))
+	sgpa = getKeyboardInput(curString, fmt.Sprintf("%.2f", st.GPA))
+	gpa, err := strconv.ParseFloat(sgpa, 64)
+	if err != nil {
+		// TODO: Handle invalid float Input
+		fmt.Printf(RedColor, "Wrong float format")
+	}
+	curString += sgpa + "\n"
 
 	st.UpdateStudent(name, st.StudentID, gpa, dec)
 
