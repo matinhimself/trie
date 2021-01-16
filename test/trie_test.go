@@ -70,6 +70,13 @@ func TestTrieDelete(t *testing.T) {
 	}
 }
 
+func TestTrieAddDeleted(t *testing.T) {
+	tree := trie.NewTrie()
+	tree.Insert("970122680000", 12)
+	tree.Delete("980122680000")
+	tree.Insert("980122680000", 12)
+}
+
 func TestTrieGetKeyPrefix(t *testing.T) {
 	tree := trie.NewTrie()
 	for i := 31; i > 0; i-- {

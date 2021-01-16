@@ -199,7 +199,7 @@ func (hm *HashTable) Delete(studentId StudentID) (deleted bool) {
 	chain := hm.buckets[index]
 	for i, node := range chain {
 		if node.Value.StudentID == studentId {
-			chain[i] = Node{}
+			hm.buckets[index] = append(chain[:i], chain[i+1:]...)
 			return true
 		}
 	}
