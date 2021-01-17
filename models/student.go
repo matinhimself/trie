@@ -17,7 +17,8 @@ type Student struct {
 
 
 func (s Student) String() string {
-	return fmt.Sprintf("%s,%s,%.2f,%s", s.StudentID, s.FullName, s.GPA, s.Discipline)
+	return fmt.Sprintf("%-15s %s\n%-15s %s\n%-15s %.2f\n%-15s %s", "Full Name:", s.FullName,
+		"Student ID:", s.StudentID, "GPA:", s.GPA, "Discipline:", s.Discipline)
 }
 
 func NewStudent(fullName string, studentID StudentID, GPA float64, discipline string) *Student {
