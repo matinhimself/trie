@@ -5,6 +5,8 @@ import (
 	"encoding/csv"
 	"fmt"
 	"github.com/eiannone/keyboard"
+	"github.com/matinhimself/trie/models"
+	"github.com/matinhimself/trie/pkg/hashtable"
 	"math"
 	"math/rand"
 	"os"
@@ -33,13 +35,13 @@ func getInput(format string, destination *string, reader *bufio.Reader, params .
 	return nil
 }
 
-func loadData(hm *HashTable) {
+func loadData(hm *hashtable.HashTable) {
 	sl := make([]int, 1000)
 	for i := 0; i < 5; i++ {
 		stid := fmt.Sprintf("%03d", i)
-		student := NewStudent(
+		student := models.NewStudent(
 			"Matin Habibi",
-			StudentID("980122680"+stid),
+			models.StudentID("980122680"+stid),
 			19.5,
 			"CE",
 		)
@@ -47,16 +49,16 @@ func loadData(hm *HashTable) {
 	}
 	for i := 0; i < 5; i++ {
 		stid := fmt.Sprintf("%03d", i)
-		student := NewStudent(
+		student := models.NewStudent(
 			"Matin Habibi",
-			StudentID("970122680"+stid),
+			models.StudentID("970122680"+stid),
 			19.5,
 			"CE",
 		)
 		sl[hm.Set(student)] += 1
 	}
 }
-func loadMassiveData(hm *HashTable) {
+func loadMassiveData(hm *hashtable.HashTable) {
 	sl := make([]int, 1000)
 	for i := 0; i < 20; i++ {
 		cd := rand.Intn(9999)
@@ -64,9 +66,9 @@ func loadMassiveData(hm *HashTable) {
 		for j := 0; j < 200; j++ {
 			stid := fmt.Sprintf("%03d", j)
 			gpa := math.Mod(rand.Float64(), 10.0) + 10.0
-			student := NewStudent(
+			student := models.NewStudent(
 				"student number "+strconv.Itoa((i+1)*(j+1)),
-				StudentID("980"+middle+"0"+stid),
+				models.StudentID("980"+middle+"0"+stid),
 				gpa,
 				"CE",
 			)
@@ -77,13 +79,13 @@ func loadMassiveData(hm *HashTable) {
 
 func main() {
 	fmt.Printf("%s", ClearScreen)
-	hm, _ := NewHashTable(1000)
+	hm, _ := hashtable.NewHashTable(1000)
 	loadData(hm)
 	//loadMassiveData(hm)
 	menu(hm)
 }
 
-func menu(hm *HashTable) {
+func menu(hm *hashtable.HashTable) {
 
 	if err := keyboard.Open(); err != nil {
 		panic(err)
@@ -101,117 +103,124 @@ func menu(hm *HashTable) {
 		if err != nil {
 			panic(err)
 		}
-		if key == keyboard.KeyBackspace || key == keyboard.KeyBackspace2 {
-			if len(typed) >= 1 {
-				typed = typed[:len(typed)-1]
+		switch key {
+		case keyboard.KeyBackspace, keyboard.KeyBackspace2:
+			{
+				if len(typed) >= 1 {
+					typed = typed[:len(typed)-1]
+					fmt.Printf("%s", ClearScreen)
+					fmt.Println(typed)
+				}
+			}
+		case keyboard.KeyEnter:
+			{
+				if selection > 0 {
+					typed = searchRes[selection-1]
+					selection = 0
+				} else {
+					res, found := hm.Get(typed)
+					if found {
+						_counter := 0
+						for {
+							fmt.Printf(ClearScreen)
+							fmt.Println(*res)
+							fmt.Println()
+							menu := []string{"() Delete", "() Edit", "() Back"}
+							for i, s := range menu {
+								if i == _counter {
+									fmt.Printf(CyanBackground, s)
+								} else {
+									if i == 2 {
+										fmt.Printf(RedColor, s)
+									} else {
+										fmt.Println(s)
+									}
+								}
+							}
+							_, secKey, err := keyboard.GetKey()
+							if err != nil {
+								panic(err)
+							}
+							if secKey == keyboard.KeyArrowUp {
+								if _counter > 0 {
+									_counter--
+								}
+							}
+							if secKey == keyboard.KeyArrowDown {
+								if _counter < 2 {
+									_counter++
+								}
+							}
+							if secKey == keyboard.KeyEnter {
+								if _counter == 0 {
+									hm.Delete(res.Value.GetKey())
+									typed = typed[:len(typed)-1]
+									break
+								} else if _counter == 1 {
+									editStudent(res.Value.(*models.Student))
+									break
+								} else if _counter == 2 {
+									break
+								}
+							}
+							if secKey == keyboard.KeyEsc {
+								break
+							}
+
+						}
+					} else {
+						continue
+					}
+				}
+
 				fmt.Printf("%s", ClearScreen)
 				fmt.Println(typed)
 			}
-		} else
-		if key == keyboard.KeyEnter {
-			if selection > 0 {
-				typed = searchRes[selection-1]
-				selection = 0
-			} else {
-				res, found := hm.Get(StudentID(typed))
-				if found {
-					_counter := 0
-					for {
-						fmt.Printf(ClearScreen)
-						fmt.Println(*res)
-						fmt.Println()
-						menu := []string{"() Delete", "() Edit", "() Back"}
-						for i, s := range menu {
-							if i == _counter {
-								fmt.Printf(CyanBackground, s)
-							} else {
-								if i == 2 {
-									fmt.Printf(RedColor, s)
-								} else {
-									fmt.Println(s)
-								}
-							}
-						}
-						_, secKey, err := keyboard.GetKey()
-						if err != nil {
-							panic(err)
-						}
-						if secKey == keyboard.KeyArrowUp {
-							if _counter > 0 {
-								_counter--
-							}
-						}
-						if secKey == keyboard.KeyArrowDown {
-							if _counter < 2 {
-								_counter++
-							}
-						}
-						if secKey == keyboard.KeyEnter {
-							if _counter == 0 {
-								hm.Delete(res.Value.StudentID)
-								typed = typed[:len(typed)-1]
-								break
-							} else if _counter == 1 {
-								editStudent(res.Value)
-								break
-							} else if _counter == 2 {
-								break
-							}
-						}
-						if secKey == keyboard.KeyEsc {
-							break
-						}
-
-					}
-				} else {
-					continue
-				}
-			}
-
-			fmt.Printf("%s", ClearScreen)
-			fmt.Println(typed)
-		} else
-		if key == keyboard.KeyArrowDown {
-			fmt.Print(ClearScreen)
-			if selection < int(math.Min(InlineSearchCount, float64(len(searchRes)))) {
-				selection++
-			}
-			fmt.Println(typed)
-		} else
-		if key == keyboard.KeyArrowUp {
-			fmt.Print(ClearScreen)
-			if selection > 0 {
-				selection--
-			}
-			fmt.Println(typed)
-		} else
-		if key == keyboard.KeyF1 {
-			fmt.Print(ClearScreen)
-			st := addStudent()
-			hm.Set(st)
-			fmt.Printf("%s", ClearScreen)
-			fmt.Println(typed)
-		} else
-		if key == keyboard.KeyF2 {
-			fmt.Print(ClearScreen)
-			export(hm)
-			continue
-		} else
-		if unicode.IsDigit(char) {
-			fmt.Printf("%s", ClearScreen)
-
-			typed += string(char)
-			fmt.Println(typed)
-		} else {
-			continue
-		}
-		searchRes = hm.GetKeysWithPrefix(StudentID(typed))
-		if len(searchRes) > 0 {
-			if searchRes[0] == typed {
+		case keyboard.KeyArrowDown:
+			{
 				fmt.Print(ClearScreen)
-				fmt.Printf(Purple, typed)
-				searchRes = searchRes[1:]
+				if selection < int(math.Min(InlineSearchCount, float64(len(searchRes)))) {
+					selection++
+				}
+				fmt.Println(typed)
 			}
+		case keyboard.KeyArrowUp:
+			{
+				fmt.Print(ClearScreen)
+				if selection > 0 {
+					selection--
+				}
+				fmt.Println(typed)
+			}
+		case keyboard.KeyF1:
+			{
+				fmt.Print(ClearScreen)
+				st := addStudent()
+				hm.Set(st)
+				fmt.Printf("%s", ClearScreen)
+				fmt.Println(typed)
+			}
+		case keyboard.KeyF2:
+			{
+				fmt.Print(ClearScreen)
+				export(hm)
+				continue
+			}
+		default:
+			if unicode.IsDigit(char) {
+				fmt.Printf("%s", ClearScreen)
+
+				typed += string(char)
+				fmt.Println(typed)
+			} else {
+				continue
+			}
+		}
+		searchRes = hm.GetKeysWithPrefix(typed)
+		if len(searchRes) > 0 && searchRes[0] == typed {
+			fmt.Print(ClearScreen)
+			fmt.Printf(Purple, typed)
+			searchRes = searchRes[1:]
 		}
 		for i, re := range searchRes[:int(math.Min(float64(len(searchRes)), InlineSearchCount))] {
 			if i+1 == selection {
@@ -225,7 +234,7 @@ func menu(hm *HashTable) {
 	}
 }
 
-func export(hm *HashTable) {
+func export(hm *hashtable.HashTable) {
 	file, err := os.Create("export.csv")
 	if err != nil {
 		println(err)
@@ -234,10 +243,22 @@ func export(hm *HashTable) {
 		_ = file.Close()
 	}()
 
+	data := hm.GetAllPairs()
 	writer := csv.NewWriter(file)
 	defer writer.Flush()
+	for _, value := range data {
+		if value == nil {
+			continue
+		}
+		stundent := value.(*models.Student)
+		err := writer.Write([]string{string(stundent.StudentID), stundent.FullName,
+			stundent.Discipline, fmt.Sprintf("%.2f", stundent.GPA)})
+		if err != nil {
+			_ = fmt.Errorf("something went wrong in writing to csv: %v", err)
+		}
+	}
+	hm.PrintAll()
 
-	hm.printAll()
 }
 
 func getKeyboardInput(Fixed, placeHolder string) string {
@@ -247,7 +268,7 @@ func getKeyboardInput(Fixed, placeHolder string) string {
 		fmt.Printf(Fixed)
 		fmt.Printf(typed)
 		char, key, _ := keyboard.GetKey()
-		if unicode.IsDigit(char) || unicode.IsLetter(char) || unicode.IsPunct(char){
+		if unicode.IsDigit(char) || unicode.IsLetter(char) || unicode.IsPunct(char) {
 			typed += string(char)
 		} else
 		if key == keyboard.KeySpace {
@@ -266,7 +287,7 @@ func getKeyboardInput(Fixed, placeHolder string) string {
 	return typed
 }
 
-func editStudent(st *Student) {
+func editStudent(st *models.Student) {
 
 	fmt.Print(ClearScreen)
 	var curString string
@@ -294,7 +315,7 @@ func editStudent(st *Student) {
 
 }
 
-func addStudent() *Student {
+func addStudent() *models.Student {
 	var name, sstid, stid, dec string
 	var gpa float64
 	reader := bufio.NewReader(os.Stdin)
@@ -329,6 +350,6 @@ func addStudent() *Student {
 	if err != nil {
 		fmt.Println(err)
 	}
-	st := NewStudent(name, StudentID(stid), gpa, dec)
+	st := models.NewStudent(name, models.StudentID(stid), gpa, dec)
 	return st
 }

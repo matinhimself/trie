@@ -1,4 +1,4 @@
-package main
+package models
 
 import (
 	"fmt"
@@ -17,8 +17,7 @@ type Student struct {
 
 
 func (s Student) String() string {
-	return fmt.Sprintf("%15s %s\n%15s %s\n%15s %.2f\n%15s %s", "Full Name:", s.FullName,
-		"Student ID:", s.StudentID, "GPA:", s.GPA, "Discipline:", s.Discipline)
+	return fmt.Sprintf("%s,%s,%.2f,%s", s.StudentID, s.FullName, s.GPA, s.Discipline)
 }
 
 func NewStudent(fullName string, studentID StudentID, GPA float64, discipline string) *Student {
@@ -35,17 +34,23 @@ func getBinaryString(s string) string {
 	return ""
 }
 
-func (s *Student) toHash() uint32 {
+
+
+func (s *Student) ToHash() uint32 {
 	var h uint32
 	stid := s.StudentID
-	h1, _ := (strconv.Atoi(string(stid)))
+	h1, _ := strconv.Atoi(string(stid))
 	h = uint32(h1)
 	h *= 2654435761
 	return h
 }
 
+func (s *Student) GetKey() string {
+	return string(s.StudentID)
+}
+
 //
-//func (s *Student) toHash() uint64 {
+//func (s *Student) ToHash() uint64 {
 //	var h float64
 //	for i := 0; i < len(s.StudentID); i++ {
 //		h += math.Pow(97,float64(i)) * float64(s.StudentID[i])

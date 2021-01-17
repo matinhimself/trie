@@ -1,4 +1,4 @@
-package main
+package hashtable
 
 import (
 	"errors"
@@ -8,14 +8,20 @@ import (
 	"sync"
 )
 
-type Node struct {
-	Value *Student
+
+
+type node struct {
+	Value hashable
 }
 
-func (n Node) String() string {
+
+func (n node) String() string {
 	return fmt.Sprintf("%s", n.Value)
 }
-
+type hashable interface {
+	ToHash() uint32
+	GetKey() string
+}
 // HashTable is a wrapper for a trie tree
 // and a hashtable. it will store each
 // student in a hashtable and its
@@ -25,7 +31,7 @@ type HashTable struct {
 	lock    sync.RWMutex
 	size    int
 	count   int
-	buckets [][]Node
+	buckets [][]node
 	tree    *trie.Trie
 }
 
@@ -39,12 +45,12 @@ func NewHashTable(size int) (*HashTable, error) {
 		return nil, errors.New("hashmap size should be > 1")
 	}
 
-	hm.buckets = make([][]Node, size)
+	hm.buckets = make([][]node, size)
 	hm.size = size
 	hm.count = 0
 	hm.tree = trie.NewTrie()
 	for i := range hm.buckets {
-		hm.buckets[i] = make([]Node, 0, 20)
+		hm.buckets[i] = make([]node, 0, 20)
 	}
 	return hm, nil
 }
@@ -121,14 +127,16 @@ func hash(key string) uint64 {
 //	return uint32(h)
 //}
 
-// returns the index at which the key needs to go
-func (hm *HashTable) getIndex(key *Student) uint32 {
-	rn := key.toHash() % uint32(hm.size)
+
+
+// returns the index of key
+func (hm *HashTable) getIndex(key hashable) uint32 {
+	rn := key.ToHash() % uint32(hm.size)
 	return rn
 }
 
 // Set the value for an associated key in the hashmap
-func (hm *HashTable) Set(student *Student) uint32 {
+func (hm *HashTable) Set(student hashable) uint32 {
 	hm.lock.Lock()
 	defer hm.lock.Unlock()
 	index := hm.getIndex(student)
@@ -139,7 +147,7 @@ func (hm *HashTable) Set(student *Student) uint32 {
 	for i := range chain {
 		// if found, update the student
 		node := &chain[i]
-		if node.Value.StudentID == student.StudentID {
+		if node.Value.GetKey() ==  student.GetKey(){
 			node.Value = student
 			found = true
 		}
@@ -149,15 +157,15 @@ func (hm *HashTable) Set(student *Student) uint32 {
 	}
 
 	// add a new node
-	node := Node{Value: student}
+	node := node{Value: student}
 	chain = append(chain, node)
 	hm.buckets[index] = chain
 	hm.count++
-	hm.tree.Insert(string(student.StudentID), index)
+	hm.tree.Insert(student.GetKey(), index)
 	return index
 }
 
-func (hm *HashTable) printAll() {
+func (hm *HashTable) PrintAll() {
 	hm.lock.RLock()
 	defer hm.lock.RUnlock()
 
@@ -169,25 +177,25 @@ func (hm *HashTable) printAll() {
 
 // Get returns the value associated with a key in the hashTable,
 // and an error indicating whether the value exists or not.
-func (hm *HashTable) Get(studentId StudentID) (*Node, bool) {
+func (hm *HashTable) Get(studentId string) (*node, bool) {
 	hm.lock.RLock()
 	defer hm.lock.RUnlock()
 
-	val, found := hm.tree.Search(trie.Bytes(studentId))
+	val, found := hm.tree.Search(studentId)
 	if !found || val == nil{
 		return nil, false
 	}
 	index := (*val).(uint32)
 	chain := hm.buckets[index]
 	for _, node := range chain {
-		if node.Value.StudentID == studentId {
+		if node.Value.GetKey() == studentId {
 			return &node, true
 		}
 	}
 	return nil, false
 }
 
-func (hm *HashTable) Delete(studentId StudentID) (deleted bool) {
+func (hm *HashTable) Delete(studentId string) (deleted bool) {
 	hm.lock.Lock()
 	defer hm.lock.Unlock()
 
@@ -198,7 +206,7 @@ func (hm *HashTable) Delete(studentId StudentID) (deleted bool) {
 	index := (*ind).(uint32)
 	chain := hm.buckets[index]
 	for i, node := range chain {
-		if node.Value.StudentID == studentId {
+		if node.Value.GetKey() == studentId {
 			hm.buckets[index] = append(chain[:i], chain[i+1:]...)
 			return true
 		}
@@ -209,33 +217,22 @@ func (hm *HashTable) Delete(studentId StudentID) (deleted bool) {
 
 
 
-func (hm *HashTable) GetKeysWithPrefix(studentId StudentID) []string {
-	keys := hm.tree.GetPrefixKeys(trie.Bytes(studentId))
-	var strs []string
-	for _, key := range keys {
-		if len(key) >= len(studentId) {
-			tmp := ""
-			for _, b := range key {
-				tmp += string(b + byte('0'))
-			}
-			strs = append(strs, tmp)
-		}
-	}
-	return strs
+func (hm *HashTable) GetKeysWithPrefix(studentId string) []string {
+	hm.lock.RLock()
+	defer hm.lock.RUnlock()
+
+	keys := hm.tree.GetPrefixKeys(studentId)
+	return keys
 }
 
 
-func (hm *HashTable) GetAllKeys(studentId StudentID) []string {
-	keys := hm.tree.GetPrefixKeys(trie.Bytes(studentId))
-	var strs []string
-	for _, key := range keys {
-		if len(key) >= len(studentId) {
-			tmp := ""
-			for _, b := range key {
-				tmp += string(b + byte('0'))
-			}
-			strs = append(strs, tmp)
-		}
+func (hm *HashTable) GetAllPairs() []hashable{
+	pairs := make([]hashable, hm.size)
+	allKeys := hm.tree.GetAllKeys()
+	for _, key := range allKeys {
+		n, _ := hm.Get(key)
+		pairs = append(pairs, n.Value)
 	}
-	return strs
+	return pairs
 }
+

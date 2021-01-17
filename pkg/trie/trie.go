@@ -8,6 +8,8 @@ import (
 // Bytes reflects a type alias for a byte slice
 type Bytes []byte
 
+const zeroAscii = byte('0')
+
 // Node implements a node that the Trie is composed of. Each node contains
 // a symbol.
 type Node struct {
@@ -127,21 +129,20 @@ func hasChildren(nodes []*Node) bool {
 	return hasChildren
 }
 
-// Search attempts to search for a Value in the trie given a key. If such a key
-// exists, it's Value is returned along with a boolean to reflect that the key
-// exists. Otherwise, an empty Value and false is returned.
-func (t *Trie) Search(key Bytes) (*interface{}, bool) {
+// Search attempts to search for a Value in the trie given a key.
+func (t *Trie) Search(skey string) (*interface{}, bool) {
+	key := convert(skey)
 	t.rw.RLock()
 	defer t.rw.RUnlock()
 
 	currNode := t.root
 
 	for _, symbol := range key {
-		if currNode.children[symbol-byte('0')] == nil {
+		if currNode.children[symbol] == nil {
 			return nil, false
 		}
 
-		currNode = currNode.children[symbol-byte('0')]
+		currNode = currNode.children[symbol]
 	}
 	if currNode.Value == nil {
 		return nil, false
@@ -151,18 +152,15 @@ func (t *Trie) Search(key Bytes) (*interface{}, bool) {
 }
 
 // GetAllKeys returns all the keys that exist in the trie. Keys are retrieved
-// by performing a DFS on the trie where at each node we keep track of the
-// current path (key) traversed thusfar and if that node has a Value. If so,
-// the full path (key) is appended to a list. After the trie search is
-// exhausted, the final list is returned.
-func (t *Trie) GetAllKeys() []Bytes {
+// by performing a DFS on the trie.
+func (t *Trie) GetAllKeys() []string {
 	visited := make(map[*Node]bool)
 	var keys []Bytes
 
 	var dfsGetKeys func(n *Node, key Bytes)
 	dfsGetKeys = func(n *Node, key Bytes) {
 		if n != nil {
-			pathKey := append(key, n.symbol+byte('0'))
+			pathKey := append(key, n.symbol)
 			visited[n] = true
 
 			if n.Value != nil {
@@ -184,22 +182,36 @@ func (t *Trie) GetAllKeys() []Bytes {
 			}
 		}
 	}
-
 	dfsGetKeys(t.root, Bytes{})
-	return keys
+	var strs []string
+	for _, key := range keys {
+		tmp := ""
+		for _, b := range key {
+			tmp += string(b + zeroAscii)
+		}
+		strs = append(strs, tmp)
+	}
+
+	return strs
 }
+
+
+//func (t *Trie) GetAllNodes() (string, interface{}){
+//
+//}
 
 // GetPrefixKeys returns all the keys that exist in the trie such that each key
 // contains a specified prefix. Keys are retrieved by performing a DFS on the
 // trie where at each node we keep track of the current path (key) and prefix
 // traversed thusfar. If a node has a Value the full path (key) is appended to
 // a list. After the trie search is exhausted, the final list is returned.
-func (t *Trie) GetPrefixKeys(prefix Bytes) []Bytes {
+func (t *Trie) GetPrefixKeys(sprefix string) []string {
+	prefix := convert(sprefix)
 	visited := make(map[*Node]bool)
 	var keys []Bytes
 
 	if len(prefix) == 0 {
-		return keys
+		return []string{}
 	}
 
 	var dfsGetPrefixKeys func(n *Node, prefixIdx int, key Bytes)
@@ -207,7 +219,7 @@ func (t *Trie) GetPrefixKeys(prefix Bytes) []Bytes {
 		if n != nil {
 			pathKey := append(key, n.symbol)
 
-			if prefixIdx == len(prefix) || n.symbol == (prefix[prefixIdx]-byte('0')) {
+			if prefixIdx == len(prefix) || n.symbol == (prefix[prefixIdx]) {
 				visited[n] = true
 
 				if n.Value != nil {
@@ -235,20 +247,26 @@ func (t *Trie) GetPrefixKeys(prefix Bytes) []Bytes {
 	}
 
 	// Find starting node from the root's children
-	if n := t.root.children[prefix[0]-byte('0')]; n != nil {
+	if n := t.root.children[prefix[0]]; n != nil {
 		dfsGetPrefixKeys(n, 0, Bytes{})
 	}
-
-	return keys
+	var strs []string
+	for _, key := range keys {
+		if len(key) >= len(prefix) {
+			tmp := ""
+			for _, b := range key {
+				tmp += string(b + zeroAscii)
+			}
+			strs = append(strs, tmp)
+		}
+	}
+	return strs
 }
 
-// GetPrefixValues returns all the values that exist in the trie such that each
-// key that corresponds to that Value contains a specified prefix. Values are
-// retrieved by performing a DFS on the trie where at each node we check if the
-// prefix is exhausted or matches thusfar and the current node has a Value. If
-// the current node has a Value, it is appended to a list. After the trie
-// search is exhausted, the final list is returned.
-func (t *Trie) GetPrefixValues(prefix Bytes) []interface{} {
+// GetPrefixValues returns all the values that exist in the trie with given prefix
+// Values retrieved by performing a DFS on the trie.
+func (t *Trie) GetPrefixValues(sprefix string) []interface{} {
+	prefix := convert(sprefix)
 	visited := make(map[*Node]bool)
 	var values []interface{}
 
@@ -259,7 +277,7 @@ func (t *Trie) GetPrefixValues(prefix Bytes) []interface{} {
 	var dfsGetPrefixValues func(n *Node, prefixIdx int)
 	dfsGetPrefixValues = func(n *Node, prefixIdx int) {
 		if n != nil {
-			if prefixIdx == len(prefix) || n.symbol == (prefix[prefixIdx]-byte('0')) {
+			if prefixIdx == len(prefix) || n.symbol == (prefix[prefixIdx]) {
 				visited[n] = true
 
 				if n.Value != nil {
@@ -280,7 +298,7 @@ func (t *Trie) GetPrefixValues(prefix Bytes) []interface{} {
 	}
 
 	//// Find starting node from the root's children
-	if n := t.root.children[prefix[0]-byte('0')]; n != nil {
+	if n := t.root.children[prefix[0]]; n != nil {
 		dfsGetPrefixValues(n, 0)
 	}
 

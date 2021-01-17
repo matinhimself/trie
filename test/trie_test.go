@@ -1,7 +1,6 @@
 package test
 
 import (
-	"bytes"
 	"fmt"
 	"github.com/matinhimself/trie/pkg/trie"
 	"strconv"
@@ -17,7 +16,7 @@ func TestTrieAdd(t *testing.T) {
 		t.Error("tree size is wrong")
 	}
 	for i := 0; i < 1000; i++ {
-		val, found := tree.Search(trie.Bytes(strconv.Itoa(i)))
+		val, found := tree.Search(strconv.Itoa(i))
 		if found == false {
 			t.Error("value didn't find in tree.")
 		} else if (*val).(int) != i {
@@ -43,7 +42,7 @@ func TestTrieGetAllKeys(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		found := false
 		for j := 0; j < 1000; j++ {
-			if bytes.Equal(res[j], trie.Bytes(strconv.Itoa(i))) {
+			if res[j] == strconv.Itoa(i) {
 				found = true
 			}
 		}
@@ -60,7 +59,7 @@ func TestTrieDelete(t *testing.T) {
 	}
 	for i := 0; i < 1000; i++ {
 		tree.Delete(strconv.Itoa(i))
-		_, found := tree.Search(trie.Bytes(strconv.Itoa(i)))
+		_, found := tree.Search(strconv.Itoa(i))
 		if found == true {
 			t.Error("deleted key found in trie.")
 		}
@@ -81,7 +80,7 @@ func TestTrieGetKeyPrefix(t *testing.T) {
 	tree := trie.NewTrie()
 	for i := 31; i > 0; i-- {
 		tree.Insert(fmt.Sprintf("%b", 1<<i), i)
-		res := tree.GetPrefixKeys(trie.Bytes(fmt.Sprintf("%b", 1<<i)))
+		res := tree.GetPrefixKeys(fmt.Sprintf("%b", 1<<i))
 		if len(res) != 32-i {
 			t.Error("prefix size is wrong")
 		}
@@ -91,7 +90,7 @@ func TestTrieGetValuePrefix(t *testing.T) {
 	tree := trie.NewTrie()
 	for i := 31; i > 0; i-- {
 		tree.Insert(fmt.Sprintf("%b", 1<<i), i)
-		res := tree.GetPrefixValues(trie.Bytes(fmt.Sprintf("%b", 1<<i)))
+		res := tree.GetPrefixValues(fmt.Sprintf("%b", 1<<i))
 		if len(res) != 32-i {
 			t.Error("prefix size is wrong")
 		}
