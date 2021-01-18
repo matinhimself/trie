@@ -71,25 +71,9 @@ func Multi64(u1, u2 uint64) (res uint64, ok bool) {
 	}
 }
 
-// Picking hash function:
-// I was confused about picking hash function
-// that is suitable for storing something like
-// student id, so i wrote some tests for
-// different hash functions,
-// and here is the stats of best two hash functions:
-// hashFunction       loadFactor       standardDeviation       emptyCells
-//   Jenkins              4.0                1.77					2
-//   Jenkins              6.0                2.27					0
-//   Jenkins              8.0                2.60					0
-// Fowler–Noll–Vo         4.0                1.47					0
-// Fowler–Noll–Vo         6.0                1.870					0
-// Fowler–Noll–Vo         8.0                2.20					0
-
 // Implements the Fowler–Noll–Vo hash function
-// Tc: O(m) with m as length of a key
-// But for large number of entries,
-// length of the keys is almost negligible.
-// so hash computation can be considered
+// Tc: O(m) with m as length of a key, But for large number of entries,
+// length of the keys is almost negligible. so hash computation can be considered
 // to take place in constant time O(1).
 func hash(key string) uint64 {
 	var h uint64
@@ -163,6 +147,10 @@ func (hm *HashTable) Set(student hashable) uint32 {
 	hm.count++
 	hm.tree.Insert(student.GetKey(), index)
 	return index
+}
+
+func (hm *HashTable) GetAllKeys() []string {
+	return hm.tree.GetAllKeys()
 }
 
 func (hm *HashTable) PrintAll() {

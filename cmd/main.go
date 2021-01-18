@@ -98,6 +98,7 @@ func menu(hm *hashtable.HashTable) {
 	var typed string
 	var selection int
 	var searchRes []string
+	LOOP:
 	for {
 		char, key, err := keyboard.GetKey()
 		if err != nil {
@@ -192,11 +193,17 @@ func menu(hm *hashtable.HashTable) {
 				}
 				fmt.Println(typed)
 			}
-		case keyboard.KeyF1:
-			{
+		case keyboard.KeyF1:{
 				fmt.Print(ClearScreen)
 				st := addStudent()
-				hm.Set(st)
+				_, found := hm.Get(string(st.StudentID))
+				if !found {
+					hm.Set(st)
+				} else {
+					fmt.Printf(RedColor, "Student ID: " + st.StudentID + " is taken.")
+					fmt.Printf(GreenColor, "Press enter to continue.")
+					_, _, _ = keyboard.GetKey()
+				}
 				fmt.Printf("%s", ClearScreen)
 				fmt.Println(typed)
 			}
@@ -206,6 +213,8 @@ func menu(hm *hashtable.HashTable) {
 				export(hm)
 				continue
 			}
+		case keyboard.KeyEsc:
+			break LOOP
 		default:
 			if unicode.IsDigit(char) {
 				fmt.Printf("%s", ClearScreen)
@@ -216,12 +225,21 @@ func menu(hm *hashtable.HashTable) {
 				continue
 			}
 		}
-		searchRes = hm.GetKeysWithPrefix(typed)
+
+		if len(typed) == 0 {
+			searchRes = hm.GetAllKeys()
+		} else {
+			searchRes = hm.GetKeysWithPrefix(typed)
+		}
+
+
 		if len(searchRes) > 0 && searchRes[0] == typed {
 			fmt.Print(ClearScreen)
 			fmt.Printf(Purple, typed)
 			searchRes = searchRes[1:]
 		}
+
+
 		for i, re := range searchRes[:int(math.Min(float64(len(searchRes)), InlineSearchCount))] {
 			if i+1 == selection {
 				fmt.Printf(CyanBackground, re)
