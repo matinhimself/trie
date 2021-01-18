@@ -21,7 +21,7 @@ const (
 	CyanBackground    = "\033[47m\033[30m%s\033[0m\n"
 	Purple            = "\033[35m%s\033[0m\n"
 	ClearScreen       = "\033[H\033[2J"
-	InlineSearchCount = 3
+	InlineSearchCount = 5
 )
 
 func getInput(format string, destination *string, reader *bufio.Reader, params ...interface{}) error {
@@ -201,7 +201,7 @@ func menu(hm *hashtable.HashTable) {
 					hm.Set(st)
 				} else {
 					fmt.Printf(RedColor, "Student ID: " + st.StudentID + " is taken.")
-					fmt.Printf(GreenColor, "Press enter to continue.")
+					fmt.Printf(GreenColor, "Press any key to continue.")
 					_, _, _ = keyboard.GetKey()
 				}
 				fmt.Printf("%s", ClearScreen)
