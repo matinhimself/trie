@@ -2,7 +2,6 @@ package models
 
 import (
 	"fmt"
-	"strconv"
 )
 
 type StudentID string
@@ -31,32 +30,43 @@ func (s *Student) UpdateStudent(fullName string, studentID StudentID, GPA float6
 	s.Discipline = discipline
 }
 
-func getBinaryString(s string) string {
-	return ""
-}
-
-
 
 func (s *Student) ToHash() uint32 {
 	var h uint32
-	stid := s.StudentID
-	h1, _ := strconv.Atoi(string(stid))
-	h = uint32(h1)
-	h *= 2654435761
+	stId := string(s.StudentID)
+	for i := 0; i < len(stId); i++ {
+		h += uint32(stId[i])
+		h += h << 7
+		h ^= h >> 5
+	}
 	return h
 }
+
+//Implements the Jenkins hash function
+//func (s *Student) ToHash() uint32 {
+//	var h uint32
+//	for _, c := range s.GetKey(){
+//		h += uint32(c)
+//		h += h << 3
+//		h ^= h >> 5
+//	}
+//	h += h << 3
+//	h ^= h >> 11
+//	h += h << 15
+//
+//	return h
+//}
+
+// Implements mine algorithm
+//func (s *Student) ToHash() uint32 {
+//	var h uint32
+//	for _, ch := range s.GetKey() {
+//		h = uint32(ch) + h << 3 + h << 5 - h
+//	}
+//	return h
+//}
+
 
 func (s *Student) GetKey() string {
 	return string(s.StudentID)
 }
-
-//
-//func (s *Student) ToHash() uint64 {
-//	var h float64
-//	for i := 0; i < len(s.StudentID); i++ {
-//		h += math.Pow(97,float64(i)) * float64(s.StudentID[i])
-//	}
-//	h = math.Mod(h, float64(4999))
-//
-//	return uint64(h)
-//}

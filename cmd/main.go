@@ -74,6 +74,7 @@ func loadMassiveData(hm *hashtable.HashTable) {
 			)
 			sl[hm.Set(student)] += 1
 		}
+		fmt.Println(sl)
 	}
 }
 

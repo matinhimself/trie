@@ -11,17 +11,19 @@ import (
 
 
 type node struct {
-	Value hashable
+	Value hashAble
 }
 
 
 func (n node) String() string {
 	return fmt.Sprintf("%s", n.Value)
 }
-type hashable interface {
+
+type hashAble interface {
 	ToHash() uint32
 	GetKey() string
 }
+
 // HashTable is a wrapper for a trie tree
 // and a hashtable. it will store each
 // student in a hashtable and its
@@ -114,25 +116,26 @@ func hash(key string) uint64 {
 
 
 // returns the index of key
-func (hm *HashTable) getIndex(key hashable) uint32 {
+func (hm *HashTable) getIndex(key hashAble) uint32 {
 	rn := key.ToHash() % uint32(hm.size)
 	return rn
 }
 
 // Set the value for an associated key in the hashmap
-func (hm *HashTable) Set(student hashable) uint32 {
+func (hm *HashTable) Set(obj hashAble) uint32 {
 	hm.lock.Lock()
 	defer hm.lock.Unlock()
-	index := hm.getIndex(student)
+
+	index := hm.getIndex(obj)
 	chain := hm.buckets[index]
 	found := false
 
 	// first see if the key already exists
 	for i := range chain {
-		// if found, update the student
+		// if found, update the obj
 		node := &chain[i]
-		if node.Value.GetKey() ==  student.GetKey(){
-			node.Value = student
+		if node.Value.GetKey() ==  obj.GetKey(){
+			node.Value = obj
 			found = true
 		}
 	}
@@ -141,11 +144,11 @@ func (hm *HashTable) Set(student hashable) uint32 {
 	}
 
 	// add a new node
-	node := node{Value: student}
+	node := node{Value: obj}
 	chain = append(chain, node)
 	hm.buckets[index] = chain
 	hm.count++
-	hm.tree.Insert(student.GetKey(), index)
+	hm.tree.Insert(obj.GetKey(), index)
 	return index
 }
 
@@ -214,8 +217,8 @@ func (hm *HashTable) GetKeysWithPrefix(studentId string) []string {
 }
 
 
-func (hm *HashTable) GetAllPairs() []hashable{
-	pairs := make([]hashable, hm.size)
+func (hm *HashTable) GetAllPairs() []hashAble {
+	pairs := make([]hashAble, hm.size)
 	allKeys := hm.tree.GetAllKeys()
 	for _, key := range allKeys {
 		n, _ := hm.Get(key)
