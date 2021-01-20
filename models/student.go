@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"github.com/matinhimself/trie/pkg/hashtable"
 )
 
 type StudentID string
@@ -40,6 +41,11 @@ func (s *Student) ToHash() uint32 {
 		h ^= h >> 5
 	}
 	return h
+}
+
+func (s *Student) Equals(other *hashtable.HashAble) bool {
+	otherSt, ok := (*other).(*Student)
+	return ok && otherSt.StudentID == s.StudentID
 }
 
 //Implements the Jenkins hash function

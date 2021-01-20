@@ -11,7 +11,7 @@ import (
 
 
 type node struct {
-	Value hashAble
+	Value HashAble
 }
 
 
@@ -19,7 +19,8 @@ func (n node) String() string {
 	return fmt.Sprintf("%s", n.Value)
 }
 
-type hashAble interface {
+type HashAble interface {
+	Equals(other *HashAble) bool
 	ToHash() uint32
 	GetKey() string
 }
@@ -116,13 +117,13 @@ func hash(key string) uint64 {
 
 
 // returns the index of key
-func (hm *HashTable) getIndex(key hashAble) uint32 {
+func (hm *HashTable) getIndex(key HashAble) uint32 {
 	rn := key.ToHash() % uint32(hm.size)
 	return rn
 }
 
 // Set the value for an associated key in the hashmap
-func (hm *HashTable) Set(obj hashAble) uint32 {
+func (hm *HashTable) Set(obj HashAble) uint32 {
 	hm.lock.Lock()
 	defer hm.lock.Unlock()
 
@@ -134,7 +135,7 @@ func (hm *HashTable) Set(obj hashAble) uint32 {
 	for i := range chain {
 		// if found, update the obj
 		node := &chain[i]
-		if node.Value.GetKey() ==  obj.GetKey(){
+		if node.Value.Equals(&obj) {
 			node.Value = obj
 			found = true
 		}
@@ -217,8 +218,8 @@ func (hm *HashTable) GetKeysWithPrefix(studentId string) []string {
 }
 
 
-func (hm *HashTable) GetAllPairs() []hashAble {
-	pairs := make([]hashAble, hm.size)
+func (hm *HashTable) GetAllPairs() []HashAble {
+	pairs := make([]HashAble, hm.size)
 	allKeys := hm.tree.GetAllKeys()
 	for _, key := range allKeys {
 		n, _ := hm.Get(key)

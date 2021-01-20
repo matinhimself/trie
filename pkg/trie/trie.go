@@ -56,8 +56,8 @@ func convert(s string) Bytes {
 
 // Insert inserts a key Value pair into the trie. If the key already exists,
 // the Value is updated.
-func (t *Trie) Insert(skey string, value interface{}) {
-	key := convert(skey)
+func (t *Trie) Insert(sKey string, value interface{}) {
+	key := convert(sKey)
 	t.rw.Lock()
 	defer t.rw.Unlock()
 	if bytes.Equal(key, Bytes("")) {
@@ -75,7 +75,7 @@ func (t *Trie) Insert(skey string, value interface{}) {
 		currNode = currNode.children[symbol]
 	}
 
-	// Only increment size if the key Value pair is new, otherwise we consider
+	// Only increase size if the key Value pair is new, otherwise we consider
 	// the operation as an update.
 	if currNode.Value == nil {
 		t.size++
@@ -84,8 +84,8 @@ func (t *Trie) Insert(skey string, value interface{}) {
 	currNode.Value = value
 }
 
-func (t *Trie) Delete(skey string) (value *interface{}, deleted bool) {
-	key := convert(skey)
+func (t *Trie) Delete(sKey string) (value *interface{}, deleted bool) {
+	key := convert(sKey)
 	t.rw.RLock()
 	defer t.rw.RUnlock()
 
@@ -130,8 +130,8 @@ func hasChildren(nodes []*Node) bool {
 }
 
 // Search attempts to search for a Value in the trie given a key.
-func (t *Trie) Search(skey string) (*interface{}, bool) {
-	key := convert(skey)
+func (t *Trie) Search(sKey string) (*interface{}, bool) {
+	key := convert(sKey)
 	t.rw.RLock()
 	defer t.rw.RUnlock()
 
@@ -183,30 +183,22 @@ func (t *Trie) GetAllKeys() []string {
 		}
 	}
 	dfsGetKeys(t.root, Bytes{})
-	var strs []string
+	var strS []string
 	for _, key := range keys {
 		tmp := ""
 		for _, b := range key {
 			tmp += string(b + zeroAscii)
 		}
-		strs = append(strs, tmp)
+		strS = append(strS, tmp)
 	}
 
-	return strs
+	return strS
 }
 
-
-//func (t *Trie) GetAllNodes() (string, interface{}){
-//
-//}
-
-// GetPrefixKeys returns all the keys that exist in the trie such that each key
-// contains a specified prefix. Keys are retrieved by performing a DFS on the
-// trie where at each node we keep track of the current path (key) and prefix
-// traversed thusfar. If a node has a Value the full path (key) is appended to
-// a list. After the trie search is exhausted, the final list is returned.
-func (t *Trie) GetPrefixKeys(sprefix string) []string {
-	prefix := convert(sprefix)
+// GetPrefixKeys returns all the keys that exist in the trie  Keys are retrieved
+// by performing a DFS on the trie.
+func (t *Trie) GetPrefixKeys(sPrefix string) []string {
+	prefix := convert(sPrefix)
 	visited := make(map[*Node]bool)
 	var keys []Bytes
 
@@ -250,23 +242,23 @@ func (t *Trie) GetPrefixKeys(sprefix string) []string {
 	if n := t.root.children[prefix[0]]; n != nil {
 		dfsGetPrefixKeys(n, 0, Bytes{})
 	}
-	var strs []string
+	var strS []string
 	for _, key := range keys {
 		if len(key) >= len(prefix) {
 			tmp := ""
 			for _, b := range key {
 				tmp += string(b + zeroAscii)
 			}
-			strs = append(strs, tmp)
+			strS = append(strS, tmp)
 		}
 	}
-	return strs
+	return strS
 }
 
 // GetPrefixValues returns all the values that exist in the trie with given prefix
 // Values retrieved by performing a DFS on the trie.
-func (t *Trie) GetPrefixValues(sprefix string) []interface{} {
-	prefix := convert(sprefix)
+func (t *Trie) GetPrefixValues(sPrefix string) []interface{} {
+	prefix := convert(sPrefix)
 	visited := make(map[*Node]bool)
 	var values []interface{}
 
