@@ -1,6 +1,7 @@
 package models
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"github.com/matinhimself/trie/pkg/hashtable"
 )
@@ -31,17 +32,29 @@ func (s *Student) UpdateStudent(fullName string, studentID StudentID, GPA float6
 	s.Discipline = discipline
 }
 
-
 func (s *Student) ToHash() uint32 {
 	var h uint32
-	stId := string(s.StudentID)
-	for i := 0; i < len(stId); i++ {
-		h += uint32(stId[i])
-		h += h << 7
+	sha := sha256.New()
+	sha.Write([]byte(s.StudentID))
+	bh := sha.Sum(nil)
+	for i := 0; i < len(bh); i++ {
+		h += uint32(bh[i])
+		h += h << 3
 		h ^= h >> 5
 	}
 	return h
 }
+
+//func (s *Student) ToHash() uint32 {
+//	var h uint32
+//	stId := string(s.StudentID)
+//	for i := 0; i < len(stId); i++ {
+//		h += uint32(stId[i])
+//		h += h << 7
+//		h ^= h >> 5
+//	}
+//	return h
+//}
 
 func (s *Student) Equals(other *hashtable.HashAble) bool {
 	otherSt, ok := (*other).(*Student)
