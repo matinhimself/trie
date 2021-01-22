@@ -9,8 +9,6 @@ import (
 	"github.com/matinhimself/trie/models"
 	"github.com/matinhimself/trie/pkg/hashtable"
 	"io"
-	"math"
-	"math/rand"
 	"os"
 	"strconv"
 	"strings"
@@ -29,58 +27,16 @@ var (
 )
 
 var (
-	CyanBackground    = "\033[42m\033[30m%s\033[0m\n"
-	Red     = Color("\033[1;31m%s\033[0m")
-	Green   = Color("\033[1;32m%s\033[0m")
-	Yellow  = Color("\033[1;36m%s\033[0m")
-	Magenta = Color("\033[1;35m%s\033[0m")
-	Teal    = Color("\033[1;36m%s\033[0m")
+	CyanBackground = "\033[42m\033[30m%s\033[0m\n"
+	Red            = Color("\033[1;31m%s\033[0m")
+	Green          = Color("\033[1;32m%s\033[0m")
+	Yellow         = Color("\033[1;36m%s\033[0m")
+	Magenta        = Color("\033[1;35m%s\033[0m")
+	Teal           = Color("\033[1;36m%s\033[0m")
 )
 
-func Color(colorString string) func(...interface{}) string {
-	sprint := func(args ...interface{}) string {
-		return fmt.Sprintf(colorString,
-			fmt.Sprint(args...))
-	}
-	return sprint
-}
-
-
-
-func getInput(format string, destination *string, reader *bufio.Reader, params ...interface{}) error {
-	fmt.Printf(format, params...)
-	text, err := reader.ReadString('\n')
-	if err != nil {
-		return err
-	}
-	// convert CRLF to LF
-	*destination = strings.Replace(text, "\n", "", -1)
-	return nil
-}
-
-
-func loadMassiveData(hm *hashtable.HashTable) {
-	sl := make([]int, 1000)
-	for i := 0; i < 20; i++ {
-		cd := rand.Intn(9999)
-		middle := fmt.Sprintf("%04d", cd)
-		for j := 0; j < 200; j++ {
-			stId := fmt.Sprintf("%03d", j)
-			gpa := math.Mod(rand.Float64(), 10.0) + 10.0
-			student := models.NewStudent(
-				"student number "+strconv.Itoa((i+1)*(j+1)),
-				models.StudentID("980"+middle+"0"+stId),
-				gpa,
-				"CE",
-			)
-			sl[hm.Set(student)] += 1
-		}
-		fmt.Println(sl)
-	}
-}
-
 func main() {
-	fmt.Printf("%s", ClearScreen)
+	fmt.Print(ClearScreen)
 	hm, _ := hashtable.NewHashTable(1000)
 	menu(hm)
 }
@@ -121,58 +77,12 @@ LOOP:
 			{
 				if selection > 0 {
 					typed = searchRes[selection-1+startIndex]
-					selection,startIndex = 0, 0
+					selection, startIndex = 0, 0
 				} else {
 					res, found := hm.Get(typed)
 					if found {
-						_counter := 0
-						for {
-							fmt.Printf(ClearScreen)
-							fmt.Println(*res)
-							fmt.Println()
-							menu := []string{"() Delete", "() Edit", "() Back"}
-							for i, s := range menu {
-								if i == _counter {
-									fmt.Printf(CyanBackground, s)
-								} else {
-									if i == 2 {
-										fmt.Printf(Red(s))
-									} else {
-										fmt.Println(s)
-									}
-								}
-							}
-							_, secKey, err := keyboard.GetKey()
-							if err != nil {
-								panic(err)
-							}
-							if secKey == keyboard.KeyArrowUp {
-								if _counter > 0 {
-									_counter--
-								}
-							}
-							if secKey == keyboard.KeyArrowDown {
-								if _counter < 2 {
-									_counter++
-								}
-							}
-							if secKey == keyboard.KeyEnter {
-								if _counter == 0 {
-									hm.Delete(res.Value.GetKey())
-									typed = typed[:len(typed)-1]
-									break
-								} else if _counter == 1 {
-									editStudent(res.Value.(*models.Student), hm)
-									break
-								} else if _counter == 2 {
-									break
-								}
-							}
-							if secKey == keyboard.KeyEsc {
-								break
-							}
-
-						}
+						stu := res.Value.(*models.Student)
+						studentProfile(stu, &typed, hm)
 					} else {
 						continue
 					}
@@ -186,7 +96,7 @@ LOOP:
 				fmt.Print(ClearScreen)
 				if selection < min(InlineSearchCount, len(searchRes)) {
 					selection++
-				} else if len(searchRes) > InlineSearchCount + startIndex{
+				} else if len(searchRes) > InlineSearchCount+startIndex {
 					startIndex++
 				}
 				fmt.Println(typed)
@@ -209,7 +119,7 @@ LOOP:
 				if !found {
 					hm.Set(st)
 				} else {
-					WaitForKey(ErrC("Student ID: "+st.StudentID+" is taken."))
+					WaitForKey(ErrC("Student ID: " + st.StudentID + " is taken."))
 				}
 				fmt.Printf("%s", ClearScreen)
 				fmt.Println(typed)
@@ -267,7 +177,7 @@ LOOP:
 						f.Close()
 						continue
 					}
-					var sGpa, name , dic, studentID string
+					var sGpa, name, dic, studentID string
 					var gpa float64
 					studentID = record[0]
 					name = record[1]
@@ -287,11 +197,12 @@ LOOP:
 				f.Close()
 				continue LOOP
 			}
-		case keyboard.KeyF4: {
-			export(hm)
-			WaitForKey(Succeed("Students exported successfully."))
-			fmt.Print(ClearScreen)
-		}
+		case keyboard.KeyF4:
+			{
+				export(hm)
+				WaitForKey(Succeed("Students exported successfully."))
+				fmt.Print(ClearScreen)
+			}
 		case keyboard.KeyEsc:
 			break LOOP
 		default:
@@ -317,8 +228,7 @@ LOOP:
 			searchRes = searchRes[1:]
 		}
 
-		for i, re := range searchRes[min(startIndex, len(searchRes)):
-			min(len(searchRes), startIndex + InlineSearchCount)] {
+		for i, re := range searchRes[min(startIndex, len(searchRes)):min(len(searchRes), startIndex+InlineSearchCount)] {
 			if i+1 == selection {
 				fmt.Printf(CyanBackground, re)
 			} else {
@@ -330,8 +240,62 @@ LOOP:
 	}
 }
 
+func studentProfile(student *models.Student, typed *string, hm *hashtable.HashTable) {
+
+	_counter := 0
+	for {
+		fmt.Printf(ClearScreen)
+		fmt.Println(*student)
+		fmt.Println()
+		menu := []string{"() Delete", "() Edit", "() Back"}
+		for i, s := range menu {
+			if i == _counter {
+				fmt.Printf(CyanBackground, s)
+			} else {
+				if i == 2 {
+					fmt.Printf(Red(s))
+				} else {
+					fmt.Println(s)
+				}
+			}
+		}
+		_, secKey, err := keyboard.GetKey()
+		if err != nil {
+			panic(err)
+		}
+		if secKey == keyboard.KeyArrowUp {
+			if _counter > 0 {
+				_counter--
+			}
+		}
+		if secKey == keyboard.KeyArrowDown {
+			if _counter < 2 {
+				_counter++
+			}
+		}
+		if secKey == keyboard.KeyEnter {
+			if _counter == 0 {
+				hm.Delete(student.GetKey())
+				*typed = (*typed)[:len(*typed)-1]
+				break
+			} else if _counter == 1 {
+				editStudent(student, hm)
+				break
+			} else if _counter == 2 {
+				break
+			}
+		}
+		if secKey == keyboard.KeyEsc {
+			break
+		}
+
+	}
+}
+
 func min(x, y int) int {
-	if x < y {return x}
+	if x < y {
+		return x
+	}
 	return y
 }
 
@@ -431,10 +395,9 @@ func editStudent(st *models.Student, hm *hashtable.HashTable) {
 		}
 	}
 
-
 }
 
-func WaitForKey(message string){
+func WaitForKey(message string) {
 	fmt.Println()
 	fmt.Println(message)
 	fmt.Println(Text("Press any key to continue..."))
@@ -480,4 +443,23 @@ func addStudent() *models.Student {
 	dec = strings.TrimSpace(dec)
 	st := models.NewStudent(name, models.StudentID(stId), gpa, dec)
 	return st
+}
+
+func Color(colorString string) func(...interface{}) string {
+	sprint := func(args ...interface{}) string {
+		return fmt.Sprintf(colorString,
+			fmt.Sprint(args...))
+	}
+	return sprint
+}
+
+func getInput(format string, destination *string, reader *bufio.Reader, params ...interface{}) error {
+	fmt.Printf(format, params...)
+	text, err := reader.ReadString('\n')
+	if err != nil {
+		return err
+	}
+	// convert CRLF to LF
+	*destination = strings.Replace(text, "\n", "", -1)
+	return nil
 }

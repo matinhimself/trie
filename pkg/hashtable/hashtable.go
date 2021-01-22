@@ -3,10 +3,8 @@ package hashtable
 import (
 	"errors"
 	"fmt"
-	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/matinhimself/trie/pkg/trie"
 	"math"
-	"os"
 	"sync"
 )
 
@@ -157,24 +155,6 @@ func (hm *HashTable) GetAllKeys() []string {
 	return hm.tree.GetAllKeys()
 }
 
-// Prints all keys stored in the trie.
-func (hm *HashTable) PrintAll() {
-	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"Student ID"})
-	hm.lock.RLock()
-	defer hm.lock.RUnlock()
-
-	res := hm.tree.GetAllKeys()
-	for _, re := range res {
-		t.AppendRow(table.Row{
-			re,
-		})
-	}
-	t.SetAutoIndex(true)
-	t.SetStyle(table.StyleLight)
-	t.Render()
-}
 
 // Get returns the value associated with a key in the hashTable,
 // and an boolean indicating whether the value exists or not.
