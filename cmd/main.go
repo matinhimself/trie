@@ -5,6 +5,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"github.com/eiannone/keyboard"
+	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/matinhimself/trie/models"
 	"github.com/matinhimself/trie/pkg/hashtable"
 	"io"
@@ -97,6 +98,7 @@ func menu(hm *hashtable.HashTable) {
 	var typed string
 	var selection int
 	var searchRes []string
+	var startIndex int
 LOOP:
 	for {
 		char, key, err := keyboard.GetKey()
@@ -118,8 +120,8 @@ LOOP:
 		case keyboard.KeyEnter:
 			{
 				if selection > 0 {
-					typed = searchRes[selection-1]
-					selection = 0
+					typed = searchRes[selection-1+startIndex]
+					selection,startIndex = 0, 0
 				} else {
 					res, found := hm.Get(typed)
 					if found {
@@ -182,15 +184,19 @@ LOOP:
 		case keyboard.KeyArrowDown:
 			{
 				fmt.Print(ClearScreen)
-				if selection < int(math.Min(InlineSearchCount, float64(len(searchRes)))) {
+				if selection < min(InlineSearchCount, len(searchRes)) {
 					selection++
+				} else if len(searchRes) > InlineSearchCount + startIndex{
+					startIndex++
 				}
 				fmt.Println(typed)
 			}
 		case keyboard.KeyArrowUp:
 			{
 				fmt.Print(ClearScreen)
-				if selection > 0 {
+				if startIndex > 0 && selection == 1 {
+					startIndex--
+				} else if selection > 0 {
 					selection--
 				}
 				fmt.Println(typed)
@@ -211,7 +217,33 @@ LOOP:
 		case keyboard.KeyF2:
 			{
 				fmt.Print(ClearScreen)
-				hm.PrintAll()
+				t := table.NewWriter()
+				t.SetOutputMirror(os.Stdout)
+				t.AppendHeader(table.Row{"Student ID", "Name", "Field", "GPA"})
+				t.SetAutoIndex(true)
+				t.SetStyle(table.StyleLight)
+				if len(typed) > 0 {
+					for _, pair := range hm.GetPairsWithPrefix(typed) {
+						st := pair.Value.(*models.Student)
+						t.AppendRow(table.Row{
+							pair.Key,
+							st.FullName,
+							st.Discipline,
+							st.GPA,
+						})
+					}
+				} else {
+					for _, pair := range hm.GetPairsWithPrefix(typed) {
+						st := pair.Value.(*models.Student)
+						t.AppendRow(table.Row{
+							pair.Key,
+							st.FullName,
+							st.Discipline,
+							st.GPA,
+						})
+					}
+				}
+				t.Render()
 				continue
 			}
 		case keyboard.KeyF3:
@@ -285,7 +317,8 @@ LOOP:
 			searchRes = searchRes[1:]
 		}
 
-		for i, re := range searchRes[:int(math.Min(float64(len(searchRes)), InlineSearchCount))] {
+		for i, re := range searchRes[min(startIndex, len(searchRes)):
+			min(len(searchRes), startIndex + InlineSearchCount)] {
 			if i+1 == selection {
 				fmt.Printf(CyanBackground, re)
 			} else {
@@ -295,6 +328,11 @@ LOOP:
 		}
 
 	}
+}
+
+func min(x, y int) int {
+	if x < y {return x}
+	return y
 }
 
 func export(hm *hashtable.HashTable) {
@@ -309,11 +347,11 @@ func export(hm *hashtable.HashTable) {
 	data := hm.GetAllPairs()
 	writer := csv.NewWriter(file)
 	defer writer.Flush()
-	for _, value := range data {
-		if value == nil {
+	for _, pair := range data {
+		if pair.Value == nil {
 			continue
 		}
-		student := value.(*models.Student)
+		student := pair.Value.(*models.Student)
 		err := writer.Write([]string{string(student.StudentID), student.FullName,
 			student.Discipline, fmt.Sprintf("%.2f", student.GPA)})
 		if err != nil {

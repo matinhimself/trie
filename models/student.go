@@ -1,9 +1,9 @@
 package models
 
 import (
-	"crypto/sha256"
 	"fmt"
 	"github.com/matinhimself/trie/pkg/hashtable"
+	"hash/maphash"
 )
 
 type StudentID string
@@ -32,18 +32,35 @@ func (s *Student) UpdateStudent(fullName string, studentID StudentID, GPA float6
 	s.Discipline = discipline
 }
 
-func (s *Student) ToHash() uint32 {
-	var h uint32
-	sha := sha256.New()
-	sha.Write([]byte(s.StudentID))
-	bh := sha.Sum(nil)
-	for i := 0; i < len(bh); i++ {
-		h += uint32(bh[i])
-		h += h << 3
-		h ^= h >> 5
+func reverse(s string) (result string) {
+	for _,v := range s {
+		result = string(v) + result
 	}
-	return h
+	return
 }
+
+
+
+func (s *Student) ToHash() uint64 {
+	revered := reverse(string(s.StudentID))
+
+	var h maphash.Hash
+	_, _ = h.WriteString(revered)
+	return h.Sum64()
+}
+
+//func (s *Student) ToHash() uint32 {
+//	var h uint32
+//	sha := sha256.New()
+//	sha.Write([]byte(s.StudentID))
+//	bh := sha.Sum(nil)
+//	for i := 0; i < len(bh); i++ {
+//		h += uint32(bh[i])
+//		h += h << 3
+//		h ^= h >> 5
+//	}
+//	return h
+//}
 
 //func (s *Student) ToHash() uint32 {
 //	var h uint32

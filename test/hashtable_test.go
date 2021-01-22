@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/matinhimself/trie/models"
 	"github.com/matinhimself/trie/pkg/hashtable"
+	"hash/maphash"
 	"math"
 	"math/rand"
 	"sort"
@@ -30,14 +31,14 @@ func loadMassiveData(studentCount int, middleCount int, hm *hashtable.HashTable,
 			gpa := math.Mod(rand.Float64(), 10.0) + 10.0
 			student := models.NewStudent(
 				"student number "+strconv.Itoa((i+1)*(j+1)),
-				models.StudentID("910"+middle+"0"+stId),
+				models.StudentID("91"+middle+"0"+stId),
 				gpa,
 				"CE",
 			)
 			gpa = math.Mod(rand.Float64(), 10.0) + 10.0
 			student2 := models.NewStudent(
 				"student number "+strconv.Itoa((i+1)*(j+1))+"v2",
-				models.StudentID("910"+middle+"1"+stId),
+				models.StudentID("91"+middle+"1"+stId),
 				gpa,
 				"CE",
 			)
@@ -53,13 +54,43 @@ func TestHashTableCollision(t *testing.T) {
 	loadMassiveData(75, 200, hm, ls)
 	min, max := MinMax(ls)
 	t.Log(Magenta("\nCollision Test Result:"), Teal("\nElements Count: "),
-		200*75, Teal("\nHashmap Size: "), hm.Size(), Teal("\nRange: "), min, "-", max)
+		200*75*4, Teal("\nHashmap Size: "), hm.Size(), Teal("\nRange: "), min, "-", max)
 	sort.Sort(sort.Reverse(sort.IntSlice(ls)))
+}
+
+func i64tob(val uint64) []byte {
+	r := make([]byte, 8)
+	for i := uint64(0); i < 8; i++ {
+		r[i] = byte((val >> (i * 8)) & 0xff)
+	}
+	return r
+}
+
+type testHashAble struct {
+	val uint64
+}
+func (t *testHashAble) GetKey() string {return strconv.FormatUint(t.val, 10) }
+func (t *testHashAble) ToHash() uint64 {
+	var h maphash.Hash
+	_, _ = h.Write(i64tob(t.val))
+	return h.Sum64()
+}
+
+func (t *testHashAble) Equals(other *hashtable.HashAble) bool {
+	otherSt, ok := (*other).(*testHashAble)
+	return ok && otherSt.val == t.val
+}
+
+func BenchmarkHashAdd(b *testing.B){
+	hm, _ := hashtable.NewHashTable(1000)
+	for i := 0; i < b.N; i++ {
+		hm.Set(&testHashAble{val: uint64(b.N)})
+	}
 }
 
 func TestHashTableAdd(t *testing.T) {
 	hm, _ := hashtable.NewHashTable(200)
-	loadMassiveData(75, 200, hm, make([]int, 1000))
+	loadMassiveData(75, 50, hm, make([]int, 1000))
 }
 
 var (

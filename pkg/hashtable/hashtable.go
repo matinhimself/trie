@@ -3,17 +3,16 @@ package hashtable
 import (
 	"errors"
 	"fmt"
+	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/matinhimself/trie/pkg/trie"
 	"math"
+	"os"
 	"sync"
 )
-
-
 
 type node struct {
 	Value HashAble
 }
-
 
 func (n node) String() string {
 	return fmt.Sprintf("%s", n.Value)
@@ -21,7 +20,7 @@ func (n node) String() string {
 
 type HashAble interface {
 	Equals(other *HashAble) bool
-	ToHash() uint32
+	ToHash() uint64
 	GetKey() string
 }
 
@@ -114,16 +113,16 @@ func hash(key string) uint64 {
 //	return uint32(h)
 //}
 
-
-
-// returns the index of key
-func (hm *HashTable) getIndex(key HashAble) uint32 {
-	rn := key.ToHash() % uint32(hm.size)
+// getIndex hashes the given key and returns its index in
+// buckets array.
+func (hm *HashTable) getIndex(key HashAble) uint64 {
+	rn := key.ToHash() % uint64(hm.size)
 	return rn
 }
 
-// Set the value for an associated key in the hashmap
-func (hm *HashTable) Set(obj HashAble) uint32 {
+// Set sets the value for an associated key in the hashmap.
+// given object should implements HashAble interface.
+func (hm *HashTable) Set(obj HashAble) uint64 {
 	hm.lock.Lock()
 	defer hm.lock.Unlock()
 
@@ -131,9 +130,9 @@ func (hm *HashTable) Set(obj HashAble) uint32 {
 	chain := hm.buckets[index]
 	found := false
 
-	// first see if the key already exists
+	// check if the key already exists
 	for i := range chain {
-		// if found, update the obj
+		// if found, update the node
 		node := &chain[i]
 		if node.Value.Equals(&obj) {
 			node.Value = obj
@@ -153,31 +152,41 @@ func (hm *HashTable) Set(obj HashAble) uint32 {
 	return index
 }
 
+// GetAllKeys returns all keys stored in the trie.
 func (hm *HashTable) GetAllKeys() []string {
 	return hm.tree.GetAllKeys()
 }
 
+// Prints all keys stored in the trie.
 func (hm *HashTable) PrintAll() {
+	t := table.NewWriter()
+	t.SetOutputMirror(os.Stdout)
+	t.AppendHeader(table.Row{"Student ID"})
 	hm.lock.RLock()
 	defer hm.lock.RUnlock()
 
 	res := hm.tree.GetAllKeys()
-	for i, re := range res {
-		fmt.Printf("%4d.%16s\n", i, re)
+	for _, re := range res {
+		t.AppendRow(table.Row{
+			re,
+		})
 	}
+	t.SetAutoIndex(true)
+	t.SetStyle(table.StyleLight)
+	t.Render()
 }
 
 // Get returns the value associated with a key in the hashTable,
-// and an error indicating whether the value exists or not.
+// and an boolean indicating whether the value exists or not.
 func (hm *HashTable) Get(studentId string) (*node, bool) {
 	hm.lock.RLock()
 	defer hm.lock.RUnlock()
 
 	val, found := hm.tree.Search(studentId)
-	if !found || val == nil{
+	if !found || val == nil {
 		return nil, false
 	}
-	index := (*val).(uint32)
+	index := (*val).(uint64)
 	chain := hm.buckets[index]
 	for _, node := range chain {
 		if node.Value.GetKey() == studentId {
@@ -187,15 +196,18 @@ func (hm *HashTable) Get(studentId string) (*node, bool) {
 	return nil, false
 }
 
+// Delete deletes the Node associated with a key in the hashTable,
+// and an boolean indicating whether the it was successfully deleted
+// or not.
 func (hm *HashTable) Delete(studentId string) (deleted bool) {
 	hm.lock.Lock()
 	defer hm.lock.Unlock()
 
-	ind, deleted := hm.tree.Delete(string(studentId))
-	if !deleted || *ind == nil{
+	ind, deleted := hm.tree.Delete(studentId)
+	if !deleted || *ind == nil {
 		return false
 	}
-	index := (*ind).(uint32)
+	index := (*ind).(uint64)
 	chain := hm.buckets[index]
 	for i, node := range chain {
 		if node.Value.GetKey() == studentId {
@@ -206,9 +218,7 @@ func (hm *HashTable) Delete(studentId string) (deleted bool) {
 	return false
 }
 
-
-
-
+// GetKeysWithPrefix returns all keys exiting with a given prefix
 func (hm *HashTable) GetKeysWithPrefix(studentId string) []string {
 	hm.lock.RLock()
 	defer hm.lock.RUnlock()
@@ -217,14 +227,38 @@ func (hm *HashTable) GetKeysWithPrefix(studentId string) []string {
 	return keys
 }
 
+type pair struct {
+	Key string
+	Value HashAble
+}
 
-func (hm *HashTable) GetAllPairs() []HashAble {
-	pairs := make([]HashAble, hm.size)
-	allKeys := hm.tree.GetAllKeys()
-	for _, key := range allKeys {
-		n, _ := hm.Get(key)
-		pairs = append(pairs, n.Value)
+
+func (hm *HashTable) GetPairsWithPrefix(pref string) []pair {
+	res := hm.GetKeysWithPrefix(pref)
+	pairs := make([]pair, 0)
+	for _, re := range res {
+		elem, found := hm.Get(re)
+		if found {
+			pairs = append(
+				pairs,
+				pair{re, elem.Value},
+			)
+		}
 	}
 	return pairs
 }
 
+func (hm *HashTable) GetAllPairs() []pair {
+	res := hm.GetAllKeys()
+	pairs := make([]pair, 0)
+	for _, re := range res {
+		elem, found := hm.Get(re)
+		if found {
+			pairs = append(
+				pairs,
+				pair{re, elem.Value},
+			)
+		}
+	}
+	return pairs
+}
