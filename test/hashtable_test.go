@@ -23,27 +23,20 @@ func TestHashTableDelete(t *testing.T) {
 	}
 }
 
+
 func loadMassiveData(studentCount int, middleCount int, hm *hashtable.HashTable, ls []int) {
 	for i := 0; i < middleCount; i++ {
 		middle := fmt.Sprintf("%04d", rand.Intn(9999))
 		for j := 0; j < studentCount; j++ {
-			stId := fmt.Sprintf("%03d", j)
-			gpa := math.Mod(rand.Float64(), 10.0) + 10.0
+			stId := fmt.Sprintf("%04d", j)
+			gpa := math.Min(rand.Float64() + float64(rand.Intn(10)+10), 20)
 			student := models.NewStudent(
 				"student number "+strconv.Itoa((i+1)*(j+1)),
-				models.StudentID("91"+middle+"0"+stId),
-				gpa,
-				"CE",
-			)
-			gpa = math.Mod(rand.Float64(), 10.0) + 10.0
-			student2 := models.NewStudent(
-				"student number "+strconv.Itoa((i+1)*(j+1))+"v2",
-				models.StudentID("91"+middle+"1"+stId),
+				models.StudentID("980"+middle +stId),
 				gpa,
 				"CE",
 			)
 			ls[hm.Set(student)] += 1
-			ls[hm.Set(student2)] += 1
 		}
 	}
 }
@@ -51,7 +44,7 @@ func loadMassiveData(studentCount int, middleCount int, hm *hashtable.HashTable,
 func TestHashTableCollision(t *testing.T) {
 	ls := make([]int, 1000)
 	hm, _ := hashtable.NewHashTable(1000)
-	loadMassiveData(75, 200, hm, ls)
+	loadMassiveData(9000, 20, hm, ls)
 	min, max := MinMax(ls)
 	t.Log(Magenta("\nCollision Test Result:"), Teal("\nElements Count: "),
 		200*75*4, Teal("\nHashmap Size: "), hm.Size(), Teal("\nRange: "), min, "-", max)

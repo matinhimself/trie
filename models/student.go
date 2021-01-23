@@ -3,7 +3,6 @@ package models
 import (
 	"fmt"
 	"github.com/matinhimself/trie/pkg/hashtable"
-	"hash/maphash"
 )
 
 type StudentID string
@@ -39,15 +38,22 @@ func reverse(s string) (result string) {
 	return
 }
 
-
-
 func (s *Student) ToHash() uint64 {
-	revered := reverse(string(s.StudentID))
-
-	var h maphash.Hash
-	_, _ = h.WriteString(revered)
-	return h.Sum64()
+	var h uint64
+	for _, ch := range s.GetKey() {
+		h = uint64(ch) + (h << 5) + (h >> 7) - h
+	}
+	return h
 }
+
+
+//func (s *Student) ToHash() uint64 {
+//	revered := reverse(string(s.StudentID))
+//
+//	var h maphash.Hash
+//	_, _ = h.WriteString(revered)
+//	return h.Sum64()
+//}
 
 //func (s *Student) ToHash() uint32 {
 //	var h uint32
