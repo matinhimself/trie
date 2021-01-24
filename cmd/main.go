@@ -77,12 +77,6 @@ LOOP:
 			panic(err)
 		}
 		switch key {
-		case keyboard.KeyF5:
-			{
-				fmt.Print(ClearScreen)
-				help()
-				continue
-			}
 		case keyboard.KeyBackspace, keyboard.KeyBackspace2:
 			{
 				if len(typed) > 0 {
@@ -160,7 +154,7 @@ LOOP:
 							pair.Key,
 							st.FullName,
 							st.Discipline,
-							st.GPA,
+							fmt.Sprintf("%.2f", st.GPA),
 						})
 					}
 				} else {
@@ -170,7 +164,7 @@ LOOP:
 							pair.Key,
 							st.FullName,
 							st.Discipline,
-							st.GPA,
+							fmt.Sprintf("%.2f", st.GPA),
 						})
 					}
 				}
@@ -221,8 +215,15 @@ LOOP:
 		case keyboard.KeyF4:
 			{
 				export(hm)
+				fmt.Print(ClearScreen)
 				WaitForKey(Succeed("Students exported successfully."))
 				fmt.Print(ClearScreen)
+			}
+		case keyboard.KeyF5:
+			{
+				fmt.Print(ClearScreen)
+				help()
+				continue
 			}
 		case keyboard.KeyEsc:
 			break LOOP
@@ -323,7 +324,7 @@ func min(x, y int) int {
 func export(hm *hashtable.HashTable) {
 	file, err := os.Create("export.csv")
 	if err != nil {
-		println(err)
+		println("adsa", err)
 	}
 	defer func() {
 		err = file.Close()
