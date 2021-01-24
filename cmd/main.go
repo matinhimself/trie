@@ -8,6 +8,7 @@ import (
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/matinhimself/trie/models"
 	"github.com/matinhimself/trie/pkg/hashtable"
+	"github.com/gookit/color"
 	"io"
 	"os"
 	"strconv"
@@ -28,11 +29,11 @@ var (
 
 var (
 	CyanBackground = "\033[42m\033[30m%s\033[0m\n"
-	Red            = Color("\033[1;31m%s\033[0m")
-	Green          = Color("\033[1;32m%s\033[0m")
-	Yellow         = Color("\033[1;36m%s\033[0m")
-	Magenta        = Color("\033[1;35m%s\033[0m")
-	Teal           = Color("\033[1;36m%s\033[0m")
+	Red            = color.Red.Sprint
+	Green          = color.Green.Sprint
+	Yellow         = color.Yellow.Sprint
+	Magenta        = color.Magenta.Sprint
+	Teal           = color.Cyan.Sprint
 )
 
 func main() {
@@ -50,7 +51,9 @@ func menu(hm *hashtable.HashTable) {
 		_ = keyboard.Close()
 	}()
 
-	fmt.Println("Press ESC to quit")
+	color.Yellow.Println("Press ESC to quit")
+	color.Yellow.Println("Press F1 to add new student")
+	color.Yellow.Println("Press F2 to show full list of student")
 	var typed string
 	var selection int
 	var searchRes []string
@@ -445,13 +448,6 @@ func addStudent() *models.Student {
 	return st
 }
 
-func Color(colorString string) func(...interface{}) string {
-	sprint := func(args ...interface{}) string {
-		return fmt.Sprintf(colorString,
-			fmt.Sprint(args...))
-	}
-	return sprint
-}
 
 func getInput(format string, destination *string, reader *bufio.Reader, params ...interface{}) error {
 	fmt.Printf(format, params...)
