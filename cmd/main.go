@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"encoding/csv"
 	"fmt"
 	"github.com/eiannone/keyboard"
@@ -10,9 +9,9 @@ import (
 	"github.com/matinhimself/trie/models"
 	"github.com/matinhimself/trie/pkg/hashtable"
 	"io"
+	"log"
 	"os"
 	"strconv"
-	"strings"
 	"unicode"
 )
 
@@ -42,29 +41,35 @@ func main() {
 	menu(hm)
 }
 
+func help() {
+	fmt.Println("Type student id to search")
+	fmt.Println(Yellow("Press"), Teal("\n  ESC"), " to quit.")
+	fmt.Println(Teal("  F1 "), " to add new student.")
+	fmt.Println(Teal("  F2 "), " to show complete list of students.")
+	fmt.Println(Teal("  F3 "), " to load from exported csv.")
+	fmt.Println(Teal("  F4 "), " to export students into a csv file.")
+	fmt.Println(Teal("  F5 "), " to show manual.")
+}
+
 func menu(hm *hashtable.HashTable) {
 
 	if err := keyboard.Open(); err != nil {
 		panic(err)
 	}
 	defer func() {
-		_ = keyboard.Close()
+		err := keyboard.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
 	}()
 
-
-	fmt.Println(Yellow("Type student id to search"))
-	fmt.Println(Yellow("Press\n\t"),Teal("ESC"), " to quit.")
-	fmt.Println("\t", Teal("F1 "), " to add new student.")
-	fmt.Println("\t", Teal("F2 "), " to show full list of students.")
-	fmt.Println("\t", Teal("F3 "), " to load from exported csv.")
-	fmt.Println("\t", Teal("F4 "), " to export students into a csv file.")
-
-
+	help()
 
 	var typed string
 	var selection int
-	var searchRes []string
+	var searchRes = hm.GetAllKeys()
 	var startIndex int
+
 LOOP:
 	for {
 		char, key, err := keyboard.GetKey()
@@ -72,14 +77,20 @@ LOOP:
 			panic(err)
 		}
 		switch key {
+		case keyboard.KeyF5:
+			{
+				fmt.Print(ClearScreen)
+				help()
+				continue
+			}
 		case keyboard.KeyBackspace, keyboard.KeyBackspace2:
 			{
-				if len(typed) >= 1 {
+				if len(typed) > 0 {
 					typed = typed[:len(typed)-1]
-					fmt.Printf("%s", ClearScreen)
+					fmt.Print(ClearScreen)
 					fmt.Println(typed)
 				} else {
-					fmt.Printf("%s", ClearScreen)
+					fmt.Print(ClearScreen)
 					fmt.Println()
 				}
 			}
@@ -98,7 +109,7 @@ LOOP:
 					}
 				}
 
-				fmt.Printf("%s", ClearScreen)
+				fmt.Print(ClearScreen)
 				fmt.Println(typed)
 			}
 		case keyboard.KeyArrowDown:
@@ -153,7 +164,7 @@ LOOP:
 						})
 					}
 				} else {
-					for _, pair := range hm.GetPairsWithPrefix(typed) {
+					for _, pair := range hm.GetAllPairs() {
 						st := pair.Value.(*models.Student)
 						t.AppendRow(table.Row{
 							pair.Key,
@@ -315,7 +326,8 @@ func export(hm *hashtable.HashTable) {
 		println(err)
 	}
 	defer func() {
-		_ = file.Close()
+		err = file.Close()
+		log.Println(Red(err))
 	}()
 
 	data := hm.GetAllPairs()
@@ -337,20 +349,26 @@ func export(hm *hashtable.HashTable) {
 
 func getKeyboardInput(Fixed, placeHolder string) string {
 	typed := placeHolder
+	fmt.Print(ClearScreen)
+	fmt.Print(Fixed)
+	fmt.Print(typed)
+
 	for {
-		fmt.Print(ClearScreen)
-		fmt.Printf(Fixed)
-		fmt.Printf(typed)
 		char, key, _ := keyboard.GetKey()
 		if unicode.IsDigit(char) || unicode.IsLetter(char) || unicode.IsPunct(char) {
 			typed += string(char)
+			fmt.Print(string(char))
 		} else
 		if key == keyboard.KeySpace {
 			typed += " "
+			fmt.Print(" ")
 		} else
 		if key == keyboard.KeyBackspace || key == keyboard.KeyBackspace2 {
 			if len(typed) > 0 {
 				typed = typed[:len(typed)-1]
+				fmt.Print(ClearScreen)
+				fmt.Print(Fixed)
+				fmt.Print(typed)
 			}
 		} else
 		if key == keyboard.KeyEnter {
@@ -415,53 +433,32 @@ func WaitForKey(message string) {
 }
 
 func addStudent() *models.Student {
-	var name, sStId, stId, dec string
+	fmt.Print(ClearScreen)
+	var curString string
+	var name, dec, sGpa, stId string
 	var gpa float64
-	reader := bufio.NewReader(os.Stdin)
-	err := getInput("Full Name: ", &name, reader)
-	name = strings.TrimSpace(name)
-	if err != nil {
-		fmt.Println(err)
-	}
-	err = getInput("Student ID: ", &sStId, reader)
-	sStId = strings.TrimSpace(sStId)
-	if err != nil {
-		fmt.Println(err)
-	}
-	for _, c := range sStId {
-		if unicode.IsDigit(c) {
-			stId += string(c)
-		}
-	}
 
-	fmt.Print("GPA: ")
-	_, err = fmt.Fscan(reader, &gpa)
-	_, err = fmt.Fscanln(reader)
-	if err != nil {
-		print(err)
-	}
-	if err != nil {
-		fmt.Print(ClearScreen)
-		fmt.Println("Not acceptable float.")
-		return addStudent()
-	}
+	curString += Text(fmt.Sprintf("%-12s", "Student ID:"))
+	stId = getKeyboardInput(curString, "")
+	curString += stId + "\n"
 
-	err = getInput("Discipline: ", &dec, reader)
+	curString += Text(fmt.Sprintf("%-12s", "Name:"))
+	name = getKeyboardInput(curString, "")
+	curString += name + "\n"
+
+	curString += Text(fmt.Sprintf("%-12s", "Discipline:"))
+	dec = getKeyboardInput(curString, "")
+	curString += dec + "\n"
+
+	curString += Text(fmt.Sprintf("%-12s", "GPA:"))
+	sGpa = getKeyboardInput(curString, "")
+	gpa, err := strconv.ParseFloat(sGpa, 64)
 	if err != nil {
-		fmt.Println(err)
+		// TODO: Handle invalid float Input
+		fmt.Print(Red("Wrong float format"))
 	}
-	dec = strings.TrimSpace(dec)
+	curString += sGpa + "\n"
+
 	st := models.NewStudent(name, models.StudentID(stId), gpa, dec)
 	return st
-}
-
-func getInput(format string, destination *string, reader *bufio.Reader, params ...interface{}) error {
-	fmt.Printf(format, params...)
-	text, err := reader.ReadString('\n')
-	if err != nil {
-		return err
-	}
-	// convert CRLF to LF
-	*destination = strings.Replace(text, "\n", "", -1)
-	return nil
 }

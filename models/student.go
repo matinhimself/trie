@@ -3,6 +3,9 @@ package models
 import (
 	"fmt"
 	"github.com/matinhimself/trie/pkg/hashtable"
+	"hash/maphash"
+	"strconv"
+	"unsafe"
 )
 
 type StudentID string
@@ -13,8 +16,6 @@ type Student struct {
 	GPA        float64
 	Discipline string
 }
-
-
 
 func (s Student) String() string {
 	return fmt.Sprintf("%-15s %s\n%-15s %s\n%-15s %.2f\n%-15s %s", "Full Name:", s.FullName,
@@ -31,42 +32,48 @@ func (s *Student) UpdateStudent(fullName string, studentID StudentID, GPA float6
 	s.Discipline = discipline
 }
 
-func reverse(s string) (result string) {
-	for _,v := range s {
-		result = string(v) + result
-	}
-	return
-}
 
+
+//using Golang's collision-resistant hash algorithm. Twice!.
 func (s *Student) ToHash() uint64 {
-	var h uint64
-	for _, ch := range s.GetKey() {
-		h = uint64(ch) + (h << 5) + (h >> 7) - h
+	var h maphash.Hash
+	_, _ = h.WriteString(string(s.StudentID))
+	_, _ = h.WriteString(strconv.Itoa(int(h.Sum64())))
+	var sum = h.Sum64()
+	var res uint64
+	for _, ch := range (*[4]byte)(unsafe.Pointer(&sum))[:] {
+		res = uint64(ch) + (res << 5) + (res >> 7) - res
 	}
-	return h
+	return res
 }
 
-
+// using Golang's collision-resistant hash algorithm. Twice!.
 //func (s *Student) ToHash() uint64 {
-//	revered := reverse(string(s.StudentID))
-//
 //	var h maphash.Hash
-//	_, _ = h.WriteString(revered)
+//	_, _ = h.WriteString(string(s.StudentID))
+//	_, _ = h.WriteString(strconv.Itoa(int(h.Sum64())))
 //	return h.Sum64()
 //}
 
+
+//func (s *Student) ToHash() uint64 {
+//	var h uint64
+//	for _, ch := range s.GetKey() {
+//		h = uint64(ch) + (h << 5) + (h >> 7) - h
+//	}
+//	return h
+//}
+
+
+// Implements the sha256 hash function
 //func (s *Student) ToHash() uint32 {
 //	var h uint32
 //	sha := sha256.New()
 //	sha.Write([]byte(s.StudentID))
 //	bh := sha.Sum(nil)
-//	for i := 0; i < len(bh); i++ {
-//		h += uint32(bh[i])
-//		h += h << 3
-//		h ^= h >> 5
-//	}
 //	return h
 //}
+
 
 //func (s *Student) ToHash() uint32 {
 //	var h uint32
@@ -79,12 +86,7 @@ func (s *Student) ToHash() uint64 {
 //	return h
 //}
 
-func (s *Student) Equals(other *hashtable.HashAble) bool {
-	otherSt, ok := (*other).(*Student)
-	return ok && otherSt.StudentID == s.StudentID
-}
-
-//Implements the Jenkins hash function
+// Implements the Jenkins hash function
 //func (s *Student) ToHash() uint32 {
 //	var h uint32
 //	for _, c := range s.GetKey(){
@@ -99,6 +101,7 @@ func (s *Student) Equals(other *hashtable.HashAble) bool {
 //	return h
 //}
 
+
 // Implements mine algorithm
 //func (s *Student) ToHash() uint32 {
 //	var h uint32
@@ -108,6 +111,33 @@ func (s *Student) Equals(other *hashtable.HashAble) bool {
 //	return h
 //}
 
+// Safe multiplication for indexing
+// in situation of overflow it will always
+// return positive number and a false and
+// false boolean.
+//func Multi64(u1, u2 uint64) (res uint64, ok bool) {
+//	if u2 >= (math.MaxUint64 / u1) {
+//		u3 := u1 * u2
+//		if u3 < 0 {
+//			u3 = -u3
+//		}
+//		return u3, false
+//	} else {
+//		return u1 * u2, true
+//	}
+//}
+
+//func reverse(s string) (result string) {
+//	for _,v := range s {
+//		result = string(v) + result
+//	}
+//	return
+//}
+
+func (s *Student) Equals(other *hashtable.HashAble) bool {
+	otherSt, ok := (*other).(*Student)
+	return ok && otherSt.StudentID == s.StudentID
+}
 
 func (s *Student) GetKey() string {
 	return string(s.StudentID)

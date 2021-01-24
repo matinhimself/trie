@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/matinhimself/trie/pkg/trie"
-	"math"
 	"sync"
 )
 
@@ -54,62 +53,6 @@ func NewHashTable(size int) (*HashTable, error) {
 	}
 	return hm, nil
 }
-
-// Safe multiplication for indexing
-// in situation of overflow it will always
-// return positive number and a false and
-// false boolean.
-func Multi64(u1, u2 uint64) (res uint64, ok bool) {
-	if u2 >= (math.MaxUint64 / u1) {
-		u3 := u1 * u2
-		if u3 < 0 {
-			u3 = -u3
-		}
-		return u3, false
-	} else {
-		return u1 * u2, true
-	}
-}
-
-// Implements the Fowler–Noll–Vo hash function
-// Tc: O(m) with m as length of a key, But for large number of entries,
-// length of the keys is almost negligible. so hash computation can be considered
-// to take place in constant time O(1).
-func hash(key string) uint64 {
-	var h uint64
-	for _, b := range []byte(key) {
-		h = h ^ uint64(b)
-		tmp, _ := Multi64(h, 1099511628211)
-		h = tmp
-	}
-	return h
-}
-
-// Implements the Jenkins hash function
-//func Jenkins(key string) uint64 {
-//	var h uint64
-//	for _, c := range key{
-//		h += uint64(c)
-//		h += h << 10
-//		h ^= h >> 6
-//	}
-//	h += h << 3
-//	h ^= h >> 11
-//	h += h << 15
-//
-//	return h
-//}
-
-// Implements mine algorithm
-//func mineAlgo(key string) uint32 {
-//	var h float64
-//	for i := 0; i < len(key); i++ {
-//		h += math.Pow(97,float64(i)) * float64(key[i])
-//	}
-//	h = math.Mod(h, float64(4999))
-//
-//	return uint32(h)
-//}
 
 // getIndex hashes the given key and returns its index in
 // buckets array.
@@ -214,6 +157,9 @@ type pair struct {
 
 
 func (hm *HashTable) GetPairsWithPrefix(pref string) []pair {
+	hm.lock.RLock()
+	defer hm.lock.RUnlock()
+
 	res := hm.GetKeysWithPrefix(pref)
 	pairs := make([]pair, 0)
 	for _, re := range res {
@@ -229,6 +175,9 @@ func (hm *HashTable) GetPairsWithPrefix(pref string) []pair {
 }
 
 func (hm *HashTable) GetAllPairs() []pair {
+	hm.lock.RLock()
+	defer hm.lock.RUnlock()
+
 	res := hm.GetAllKeys()
 	pairs := make([]pair, 0)
 	for _, re := range res {
