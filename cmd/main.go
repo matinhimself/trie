@@ -5,10 +5,10 @@ import (
 	"encoding/csv"
 	"fmt"
 	"github.com/eiannone/keyboard"
+	"github.com/gookit/color"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/matinhimself/trie/models"
 	"github.com/matinhimself/trie/pkg/hashtable"
-	"github.com/gookit/color"
 	"io"
 	"os"
 	"strconv"
@@ -51,9 +51,16 @@ func menu(hm *hashtable.HashTable) {
 		_ = keyboard.Close()
 	}()
 
-	color.Yellow.Println("Press ESC to quit")
-	color.Yellow.Println("Press F1 to add new student")
-	color.Yellow.Println("Press F2 to show full list of student")
+
+	fmt.Println(Yellow("Type student id to search"))
+	fmt.Println(Yellow("Press\n\t"),Teal("ESC"), " to quit.")
+	fmt.Println("\t", Teal("F1 "), " to add new student.")
+	fmt.Println("\t", Teal("F2 "), " to show full list of students.")
+	fmt.Println("\t", Teal("F3 "), " to load from exported csv.")
+	fmt.Println("\t", Teal("F4 "), " to export students into a csv file.")
+
+
+
 	var typed string
 	var selection int
 	var searchRes []string
@@ -447,7 +454,6 @@ func addStudent() *models.Student {
 	st := models.NewStudent(name, models.StudentID(stId), gpa, dec)
 	return st
 }
-
 
 func getInput(format string, destination *string, reader *bufio.Reader, params ...interface{}) error {
 	fmt.Printf(format, params...)
